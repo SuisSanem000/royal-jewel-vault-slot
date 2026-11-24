@@ -11,7 +11,8 @@ A client-side 5×3 video slot game built with **PixiJS v8**, **TypeScript**, **V
 **Prerequisites:** Node.js 18+ (or Bun) and `npm`.
 
 ```bash
-cd game
+git clone https://github.com/SuisSanem000/royal-jewel-vault-slot.git
+cd royal-jewel-vault-slot
 npm install
 npm run dev
 ```
@@ -43,7 +44,7 @@ npm run preview # Preview the production build locally
 ## Architecture Overview
 
 ```text
-game/
+royal-jewel-vault-slot/
 ├── public/assets/symbols/     # Normalized, 512×512 optimized PNG copies of provided symbols
 ├── src/
 │   ├── core/                  # Pure TypeScript game logic (ZERO PixiJS/DOM imports)
