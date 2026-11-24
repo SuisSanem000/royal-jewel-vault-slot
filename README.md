@@ -1,4 +1,4 @@
-# Royal Jewel Vault — PixiJS Slot Game
+# <img src="./public/favicon.png" alt="Royal Jewel Vault" width="32" align="absmiddle" /> Royal Jewel Vault — PixiJS Slot Game
 
 > **Live Demo:** https://suissanem000.github.io/royal-jewel-vault-slot/
 
