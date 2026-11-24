@@ -1,5 +1,7 @@
 # Royal Jewel Vault — PixiJS Slot Game
 
+> **Live Demo:** https://suissanem000.github.io/royal-jewel-vault-slot/
+
 A client-side 5×3 video slot game built with **PixiJS v8**, **TypeScript**, **Vite**, **GSAP**, and **Vitest**, featuring strict separation between game logic and rendering.
 
 ---
