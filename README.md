@@ -67,3 +67,20 @@ royal-jewel-vault-slot/
     ├── core/                  # Unit tests for evaluator, stateMachine, slotEngine
     └── controller/            # End-to-end base + bonus flow tests via mock adapter
 ```
+
+---
+
+## Technical Choices & Design Rationale
+
+- **Strict Logic vs. Rendering Separation (`src/core/` vs. `src/presentation/`):**
+  `src/core/` is pure TypeScript with zero PixiJS or DOM imports. `GameController` mediates between `SlotEngine` and a `PresentationAdapter` interface so swapping local simulation for a remote game server (RGS) requires touching only one boundary—leaving all PixiJS rendering intact.
+- **PixiJS v8 + GSAP:**
+  PixiJS v8 `Ticker` drives smooth 60fps masked reel scrolling (`ReelColumn`), while GSAP handles declarative timelines (`back.out(2.2)` landing bounce, pulsing `symbol_overlay.png` win frames, rolling win count-ups) and clean interruption (`killTweensOf`) for instant Quick Stop.
+- **Guarded Finite State Machine (`GameStateMachine`):**
+  An explicit `ALLOWED_TRANSITIONS` table (`BOOT -> IDLE -> SPINNING -> EVALUATING -> WIN_PRESENTATION -> BONUS_* -> IDLE`) prevents double-spins, mid-spin bet changes, and invalid bonus state transitions.
+- **Proactive Asset Optimization:**
+  Normalized inconsistent raw filenames and downscaled symbol textures to `512×512` (~2.2 MB total vs. ~9.7 MB raw) for fast WebGL loading while preserving retina sharpness, alongside matching gold-and-ruby procedural `WILD` and `SCATTER` emblems.
+- **Zero-Dependency Procedural Web Audio:**
+  Sound effects (clicks, spins, pitched reel stops, win arpeggios, bonus fanfares) are synthesized via the Web Audio API with a Mute toggle, avoiding external audio asset loading overhead.
+- **Deterministic Testing & CI/CD (`SeededRng` + Vitest + GitHub Pages):**
+  A Mulberry32 `SeededRng` enables reproducible unit tests for 20-payline evaluation, Wild/Scatter rules, balance invariants, and end-to-end Free Spins flows (`10/10` tests passing), automatically verified and deployed via GitHub Actions.
