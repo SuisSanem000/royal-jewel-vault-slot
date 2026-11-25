@@ -68,6 +68,17 @@ export class GameController {
     this.view.setSpinButton('SPIN', this.engine.canSpin());
   }
 
+  handleReset(): void {
+    if (this.fsm.state !== 'IDLE') return;
+    this.view.playClick();
+    this.autoSpin = false;
+    this.view.setAutoActive(false);
+    this.view.clearWins();
+    this.engine.reset();
+    this.syncHud(0);
+    this.view.setSpinButton('SPIN', this.engine.canSpin());
+  }
+
   handleToggleAuto(): void {
     this.view.playClick();
     this.autoSpin = !this.autoSpin;

@@ -72,4 +72,16 @@ describe('SlotEngine', () => {
     expect(a.grid).toEqual(b.grid);
     expect(a.totalWin).toBe(b.totalWin);
   });
+
+  it('resets balance, bet, and bonus state back to defaults', () => {
+    const engine = new SlotEngine(new SeededRng(7), 200);
+    engine.increaseBet();
+    engine.spin({ forceBonus: true });
+    expect(engine.bonus.active).toBe(true);
+
+    engine.reset();
+    expect(engine.balance).toBe(1000);
+    expect(engine.bet).toBe(5);
+    expect(engine.bonus.active).toBe(false);
+  });
 });

@@ -172,4 +172,11 @@ export class SlotEngine {
   finishBonus(): void {
     this._bonus = createEmptyBonusState();
   }
+
+  /** Resets balance, bet, and bonus state back to initial defaults */
+  reset(): void {
+    this._balance = INITIAL_BALANCE;
+    this._betIndex = DEFAULT_BET_INDEX;
+    this._bonus = createEmptyBonusState();
+  }
 }

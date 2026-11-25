@@ -58,6 +58,7 @@ async function bootstrap(): Promise<void> {
     },
     onDemoBonus: () => void controller.handleSpin(true),
     onRefill: () => controller.handleRefill(),
+    onReset: () => controller.handleReset(),
   });
   hud.position.set((STAGE_WIDTH - 1180) / 2, STAGE_HEIGHT - 114);
 
@@ -68,8 +69,8 @@ async function bootstrap(): Promise<void> {
   });
 
   const adapter: PresentationAdapter = {
-    updateHud(balance, bet, win, bonus, canSpin) {
-      hud.setBalance(balance, !canSpin && !bonus.active);
+    updateHud(balance, bet, win, bonus) {
+      hud.setBalance(balance, balance < bet && !bonus.active);
       hud.setBet(bet, bonus.active);
       hud.setWin(win, win > 0);
       bonusBar.updateBonus(bonus);

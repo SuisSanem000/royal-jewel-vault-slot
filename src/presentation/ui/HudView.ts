@@ -11,6 +11,7 @@ export interface HudCallbacks {
   onTogglePaytable: () => void;
   onDemoBonus: () => void;
   onRefill: () => void;
+  onReset: () => void;
 }
 
 function makeButton(
@@ -47,6 +48,7 @@ export class HudView extends Container {
   private readonly turboBtn: ReturnType<typeof makeButton>;
   private readonly muteBtn: ReturnType<typeof makeButton>;
   private readonly demoBtn: ReturnType<typeof makeButton>;
+  private readonly resetBtn: ReturnType<typeof makeButton>;
   private readonly refillBtn: ReturnType<typeof makeButton>;
   private readonly betDownBtn: ReturnType<typeof makeButton>;
   private readonly betUpBtn: ReturnType<typeof makeButton>;
@@ -63,15 +65,15 @@ export class HudView extends Container {
     this.addChild(bar);
 
     this.balanceVal = this.createStatBlock('BALANCE', '1000.00', 28);
-    this.betVal = this.createStatBlock('BET', '5.00', 250);
-    this.winVal = this.createStatBlock('WIN', '0.00', 475);
+    this.betVal = this.createStatBlock('BET', '5.00', 300, true);
+    this.winVal = this.createStatBlock('WIN', '0.00', 445);
 
-    this.betDownBtn = makeButton('-', 42, 42, 0x3b0d22, 0xeab308, 22);
-    this.betDownBtn.container.position.set(200, 27);
+    this.betDownBtn = makeButton('-', 38, 38, 0x3b0d22, 0xeab308, 22);
+    this.betDownBtn.container.position.set(212, 29);
     this.betDownBtn.container.on('pointertap', callbacks.onBetDown);
 
-    this.betUpBtn = makeButton('+', 42, 42, 0x3b0d22, 0xeab308, 22);
-    this.betUpBtn.container.position.set(365, 27);
+    this.betUpBtn = makeButton('+', 38, 38, 0x3b0d22, 0xeab308, 22);
+    this.betUpBtn.container.position.set(350, 29);
     this.betUpBtn.container.on('pointertap', callbacks.onBetUp);
 
     this.spinBtn = makeButton('SPIN', 170, 62, 0xb91c1c, 0xfacc15, 24);
@@ -99,8 +101,12 @@ export class HudView extends Container {
     this.demoBtn.container.position.set(1056, -42);
     this.demoBtn.container.on('pointertap', callbacks.onDemoBonus);
 
-    this.refillBtn = makeButton('REFILL +1000', 140, 36, 0x15803d, 0xfacc15, 13);
-    this.refillBtn.container.position.set(28, -44);
+    this.resetBtn = makeButton('RESET', 84, 32, 0x3b0d22, 0xd97706, 12);
+    this.resetBtn.container.position.set(4, -42);
+    this.resetBtn.container.on('pointertap', callbacks.onReset);
+
+    this.refillBtn = makeButton('REFILL +1000', 130, 32, 0x15803d, 0xfacc15, 12);
+    this.refillBtn.container.position.set(98, -42);
     this.refillBtn.container.visible = false;
     this.refillBtn.container.on('pointertap', callbacks.onRefill);
 
@@ -113,21 +119,24 @@ export class HudView extends Container {
       infoBtn.container,
       this.muteBtn.container,
       this.demoBtn.container,
+      this.resetBtn.container,
       this.refillBtn.container,
     );
   }
 
-  private createStatBlock(title: string, initial: string, x: number): Text {
+  private createStatBlock(title: string, initial: string, x: number, centered = false): Text {
     const label = new Text({
       text: title,
       style: { fill: 0xfde68a, fontSize: 12, fontWeight: '700', letterSpacing: 1.5 },
     });
+    if (centered) label.anchor.set(0.5, 0);
     label.position.set(x, 18);
 
     const value = new Text({
       text: initial,
       style: { fill: 0xffffff, fontSize: 26, fontWeight: '800' },
     });
+    if (centered) value.anchor.set(0.5, 0);
     value.position.set(x, 38);
 
     this.addChild(label, value);
@@ -144,6 +153,7 @@ export class HudView extends Container {
     this.betDownBtn.container.alpha = locked ? 0.4 : 1;
     this.betUpBtn.container.alpha = locked ? 0.4 : 1;
     this.demoBtn.container.alpha = locked ? 0.4 : 1;
+    this.resetBtn.container.alpha = locked ? 0.4 : 1;
   }
 
   setWin(amount: number, animate = true): void {

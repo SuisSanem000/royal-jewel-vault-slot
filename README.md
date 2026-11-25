@@ -38,7 +38,7 @@ npm run preview # Preview the production bundle locally
   - `-` / `+` adjusts bet (`1, 2, 5, 10, 20, 50` credits; locked during active Free Spins).
   - `AUTO` toggles continuous spins; `TURBO` toggles fast reel stops; `INFO` opens the visual Paytable & Rules modal (`ESC` / `Space` / click to close); `SFX ON / MUTED` toggles procedural Web Audio sound effects.
   - **`DEMO BONUS`** (top-right of HUD) guarantees a 3-Scatter spin so evaluators can inspect the full Bonus Game flow on demand.
-  - **`REFILL +1000`** appears automatically if balance drops below the current bet.
+  - **`RESET`** (top-left of HUD) resets balance (`1000.00`), bet (`5.00`), and game state back to start without refreshing the page; **`REFILL +1000`** appears when balance drops below the current bet.
 
 ---
 
