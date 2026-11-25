@@ -2,7 +2,7 @@
 
 > **Live Demo:** https://suissanem000.github.io/royal-jewel-vault-slot/
 
-A client-side **5×3, 20-payline video slot game** built with **PixiJS v8**, **TypeScript (strict)**, **Vite**, **GSAP**, and **Vitest**, architected with strict separation between pure game math/state and rendering.
+A client-side **5×3, 20-payline video slot game** built with **PixiJS v8**, **TypeScript (strict)**, **Vite**, **GSAP**, and **Vitest**, with strict separation between pure game math/state and rendering.
 
 ---
 
@@ -17,90 +17,92 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite (default: `http://localhost:5173`).
-
-### Tests & Production Build
+Open the Vite URL (default: `http://localhost:5173`).
 
 ```bash
-npm test        # Runs Vitest unit & end-to-end flow tests
-npm run build   # Strict TypeScript check (tsc --noEmit) + Vite production bundle (dist/)
-npm run preview # Preview the production bundle locally
+npm test        # Vitest unit & end-to-end flow tests (20/20 passing)
+npm run build   # Strict TypeScript check (tsc --noEmit) + Vite bundle
+npm run preview # Preview production build locally
 ```
 
 ---
 
 ## Gameplay & Controls
 
-- **Base Game:** 5 reels × 3 rows, 20 fixed paylines (left-to-right, 3+ matching symbols). Uses all 8 provided gem/royal symbols plus `symbol_overlay.png` pulsing win frames, paired with custom gold-and-ruby `WILD` and `SCATTER` emblems.
-- **Bonus Game (Royal Free Spins):** Triggered by 3 / 4 / 5 `SCATTER` symbols anywhere (`8 / 10 / 12` Free Spins). Transitions into a crimson-violet bonus state with a persistent progressive multiplier (`1x → 2x → 3x → 5x` stepping up on each winning bonus spin), Scatter re-triggers, a `BONUS COMPLETE!` summary modal, and a clean return to base play.
+- **Base Game:** 5×3 grid, 20 fixed paylines (left-to-right, 3+ matching symbols), 8 provided gem/royal symbols + `symbol_overlay.png` win frames + procedural `WILD` and `SCATTER` emblems.
+- **Bonus Game (Royal Free Spins):** 3 / 4 / 5 Scatters award `8 / 10 / 12` Free Spins with a progressive win multiplier (`1x → 2x → 3x → 5x`), Scatter re-triggers, `BONUS COMPLETE!` summary, and clean return to base play.
 - **Controls:**
-  - `SPIN` button or `Space` key to spin; click `STOP` or press `Space` again mid-spin for **Quick Stop**.
-  - `-` / `+` adjusts bet (`1, 2, 5, 10, 20, 50` credits; locked during active Free Spins).
-  - `AUTO` toggles continuous spins; `TURBO` toggles fast reel stops; `INFO` opens the visual Paytable & Rules modal (`ESC` / `Space` / click to close); `SFX ON / MUTED` toggles procedural Web Audio sound effects.
-  - **`DEMO BONUS`** (top-right of HUD) guarantees a 3-Scatter spin so evaluators can inspect the full Bonus Game flow on demand (automatically disabled while spins/bonus/auto are active).
-  - **`RESET` / `STOP ALL`** (top-left of HUD) works at any time—including mid-spin, during banners, or inside `AUTO` and `BONUS` sequences—switching its label to **`STOP ALL`** whenever `AUTO` or Free Spins are active so you can immediately abort any ongoing flow and return to start (`1000.00` balance, `5.00` bet). **`REFILL +1000`** appears when idle and balance drops below the current bet.
+  - `SPIN` / `Space`: Spin reels; press again mid-spin for **Quick Stop** (`STOP`).
+  - `-` / `+`: Step bet (`1, 2, 5, 10, 20, 50` credits; locked during `AUTO` and `BONUS`).
+  - `AUTO` / `TURBO` / `INFO` / `SFX ON`: Autoplay toggle, fast stops, dynamic Paytable & Rules modal, procedural Web Audio mute toggle.
+  - `DEMO BONUS`: Guarantees a 3-Scatter trigger for quick evaluation.
+  - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset (`1000.00` balance, `5.00` bet).
+  - `REFILL +1000`: Appears when idle and balance drops below the active bet.
 
 ---
 
-## Architecture & Project Structure
+## Architecture
 
 ```text
 royal-jewel-vault-slot/
-├── scripts/
-│   └── normalize-assets.mjs   # Automated designer-asset renamer & resizer (512×512)
-├── public/assets/symbols/     # Normalized, 512×512 optimized PNG copies of provided symbols
+├── scripts/normalize-assets.mjs   # Standalone designer-asset renamer & 512×512 resizer
+├── public/assets/symbols/         # Normalized 512×512 PNG assets + favicon
 ├── src/
-│   ├── core/                  # PURE TypeScript — ZERO PixiJS or DOM imports
-│   │   ├── types.ts           # Immutable domain types (Grid, LineWin, BonusState, SpinResult, GameState)
-│   │   ├── config.ts          # Data-driven paytable, 20 paylines, 5×28 virtual reel strips, bonus rules
-│   │   ├── rng.ts             # Rng interface + MathRng + deterministic Mulberry32 SeededRng
-│   │   ├── evaluator.ts       # Left-to-right payline, WILD substitution, and SCATTER evaluator
-│   │   ├── stateMachine.ts    # Guarded FSM enforcing valid state transitions
-│   │   └── slotEngine.ts      # Balance accounting, spin resolution & Free Spins lifecycle
-│   ├── presentation/          # PixiJS v8 rendering, GSAP timelines & Web Audio SFX
-│   │   ├── assets.ts          # PixiJS Assets preloader + procedural WILD/SCATTER emblem textures
-│   │   ├── audio.ts           # Zero-dependency Web Audio API sound synthesizer
-│   │   ├── layout.ts          # Pure dual-orientation virtual stage & DPR math (1280×720 / 820×1060)
-│   │   ├── SlotStage.ts       # Responsive PixiJS stage, zoom/DPR sync, loading state & sparkle FX
-│   │   ├── reels/             # Masked 4-sprite ReelColumn + staggered 5×3 ReelGridView
-│   │   └── ui/                # Adaptive HudView + BonusHeaderBar, ModalBanner, visual PaytableModal
-│   ├── controller/
-│   │   └── GameController.ts  # Mediates HUD input, FSM, SlotEngine, and PresentationAdapter
-│   └── main.ts                # Application bootstrap, layout wiring & keyboard shortcuts
-└── tests/
-    ├── core/                  # Unit tests for evaluator, stateMachine, slotEngine
-    ├── presentation/          # Pure responsive layout & DPR clamping unit tests
-    └── controller/            # End-to-end base + bonus flow tests via mock PresentationAdapter
+│   ├── core/                      # Pure TypeScript — zero PixiJS or DOM imports
+│   │   ├── types.ts               # Domain types (Grid, LineWin, BonusState, SpinResult, GameState)
+│   │   ├── config.ts              # Paytable, 20 paylines, 5×28 virtual reel strips, bonus rules
+│   │   ├── rng.ts                 # Rng interface, MathRng & deterministic Mulberry32 SeededRng
+│   │   ├── evaluator.ts           # Left-to-right payline, WILD substitution & SCATTER evaluator
+│   │   ├── stateMachine.ts        # Guarded FSM + safe reset()
+│   │   └── slotEngine.ts          # Balance accounting, spin resolution & Free Spins lifecycle
+│   ├── presentation/              # PixiJS v8, GSAP timelines & Web Audio
+│   │   ├── assets.ts              # Asset preloader + procedural WILD/SCATTER emblem textures
+│   │   ├── audio.ts               # Zero-dependency Web Audio synthesizer (iOS-hardened)
+│   │   ├── layout.ts              # Pure dual-orientation stage & DPR math
+│   │   ├── SlotStage.ts           # Adaptive stage, zoom/DPR sync, backdrop & sparkle FX
+│   │   ├── reels/                 # Masked 4-sprite ReelColumn + staggered 5×3 ReelGridView
+│   │   └── ui/                    # Reflowable HudView + BonusHeaderBar, ModalBanner, PaytableModal
+│   ├── controller/GameController.ts  # Mediates HUD, FSM, SlotEngine & PresentationAdapter
+│   └── main.ts                    # Bootstrap, layout wiring & keyboard shortcuts
+└── tests/                         # core/, presentation/, and controller/ Vitest suites
 ```
+
+---
+
+## Technical Highlights
+
+- **Decoupled Core & RGS-Ready Adapter:** `src/core/` has zero PixiJS/DOM imports; `GameController` talks to `PresentationAdapter`, making local RNG → Remote Game Server (RGS) migration straightforward.
+- **Spoiler-Free Presentation:** Outcomes resolve upfront in `SlotEngine.spin()`, while `WIN`, `BonusState`, and 2-Scatter anticipation glows reveal only as reels land.
+- **PixiJS v8 + GSAP Pipeline:** 4-sprite recycled `ReelColumn` inside a `Graphics` mask, `Ticker`-driven scroll with `BlurFilter`, GSAP `back.out(2.2)` bounce, pulsing `symbol_overlay.png` frames, and clean `forceStop` / `killTweensOf` teardown.
+- **Guarded FSM & Cancellation:** `ALLOWED_TRANSITIONS` prevents invalid states; `runId` cancellation tokens + `forceStop()` guarantee `STOP ALL` / `RESET` never leaves dangling timers or half-finished bonus flows.
+- **Separated Asset Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):** Normalizes raw designer filenames and downscales `1254×1254` PNGs (`~9.7 MB`) to `512×512` (`~2.2 MB`, ~77% lighter), isolated for easy expansion into spritesheet packing and WebP conversion.
+- **Zero-Dependency Web Audio:** Synthesizes UI clicks, spin whooshes, pitched reel stops, win arpeggios, and bonus fanfares with no external audio files.
 
 ---
 
 ## Responsiveness, Mobile & Cross-Browser Engineering
 
-Built for desktop widescreens, laptops, tablets, and portrait/landscape phones across Chrome, Safari (macOS/iOS), Firefox, and Edge:
-
-- **Dual-Orientation Adaptive Virtual Stage ([`layout.ts`](./src/presentation/layout.ts), [`SlotStage.ts`](./src/presentation/SlotStage.ts)):** Automatically switches between a `1280×720` widescreen stage (desktop & mobile landscape) and an `820×1060` portrait stage (`h > w × 1.05`) so reels fill mobile screen width cleanly without vertical letterboxing.
-- **Thumb-Ergonomic Portrait HUD & Modal Reflow ([`HudView.ts`](./src/presentation/ui/HudView.ts), [`Overlays.ts`](./src/presentation/ui/Overlays.ts)):** In portrait mode, `HudView` reflows into a 3-row mobile card (`780×352`) with centered stats, `56×56` `-`/`+` bet steppers, a `360×96` primary `SPIN` button in the thumb zone, and full-width secondary/utility buttons. `PaytableModal` and `ModalBanner` dynamically re-center and scale-to-fit within the active viewport so overlays never clip on narrow screens.
-- **Mobile Dynamic Viewport & Notch Safe Areas ([`index.html`](./index.html)):** Uses `100dvh` (with `100%` fallback) so collapsible mobile browser address bars never clip the canvas, plus `viewport-fit=cover` and `env(safe-area-inset-*)` padding on `body` so `#app` and the PixiJS `resizeTo` container respect iPhone notches and home-indicator bars seamlessly.
-- **Browser Zoom (`Cmd/Ctrl +/-`), Multi-Monitor DPR & GPU Cap ([`SlotStage.ts`](./src/presentation/SlotStage.ts), [`layout.ts`](./src/presentation/layout.ts)):** Clamps `devicePixelRatio` via `clampDevicePixelRatio` (`[1, 2]`) to preserve Retina sharpness without `3×`/`4×` mobile fragment-shader fill-rate penalties, and subscribes to `window.resize`, `window.visualViewport`, `screen.orientation`, and Pixi renderer `resize` events so browser zooming or dragging across displays updates `renderer.resolution` live.
-- **Touch Ergonomics ([`index.html`](./index.html)):** Applies `overscroll-behavior: none`, `touch-action: manipulation` / `none`, `-webkit-tap-highlight-color: transparent`, and `-webkit-text-size-adjust: 100%` to prevent accidental pull-to-refresh, double-tap zoom delays, and tap flash artifacts while preserving desktop accessibility zoom.
-- **Cross-Browser Canvas & iOS Safari Web Audio Hardening ([`assets.ts`](./src/presentation/assets.ts), [`audio.ts`](./src/presentation/audio.ts)):** Includes a `CanvasRenderingContext2D.roundRect` fallback via `arcTo` for older WebViews, `webkitAudioContext` fallback, eager first-gesture unlock listeners (`pointerdown` / `touchstart` / `keydown`), and iOS Safari `'interrupted'` state recovery alongside `'suspended'`.
+- **Dual-Orientation Virtual Stage ([`layout.ts`](./src/presentation/layout.ts), [`SlotStage.ts`](./src/presentation/SlotStage.ts)):** Auto-switches between `1280×720` (desktop/landscape) and `820×1060` (portrait when `h > w × 1.05`).
+- **Thumb-Zone Mobile HUD & Modal Scaling ([`HudView.ts`](./src/presentation/ui/HudView.ts), [`Overlays.ts`](./src/presentation/ui/Overlays.ts)):** Portrait mode reflows into a `780×352` 3-row card (`360×96` `SPIN`, `56×56` `-`/`+`, `170×68` toggles); `PaytableModal` and `ModalBanner` auto-center, word-wrap, and scale to fit narrow screens.
+- **Viewport, Notches & Touch ([`index.html`](./index.html)):** Uses `100dvh` (`100%` fallback), `viewport-fit=cover`, `env(safe-area-inset-*)` padding, `overscroll-behavior: none`, `touch-action`, and `-webkit-tap-highlight-color: transparent` without blocking accessibility zoom.
+- **Browser Zoom & DPR Cap:** Clamps `devicePixelRatio` to `[1, 2]` and updates `renderer.resolution` live on `window.resize`, `visualViewport.resize`, and `screen.orientation` changes.
+- **Cross-Browser Canvas & iOS Audio:** Includes an `arcTo` fallback for `ctx.roundRect`, `webkitAudioContext` fallback, first-gesture audio unlock, and iOS `'interrupted'` AudioContext recovery.
 
 ---
 
-## Technical Choices & Design Rationale
+## Engineering & QA Log (Project Execution)
 
-1. **Strict Logic vs. Rendering Separation (`src/core/` & `PresentationAdapter`):**
-   `src/core/` contains zero PixiJS or browser DOM imports. `GameController` mediates between `SlotEngine` and a `PresentationAdapter` interface so replacing local RNG simulation with a remote game server (RGS) API requires changing only the controller's spin fetch—leaving every PixiJS scene, reel, and animation untouched.
-2. **Spoiler-Free Result Presentation:**
-   `SlotEngine.spin()` resolves outcomes upfront, while `GameController` intentionally withholds the updated `BonusState` and `WIN` payout until `ReelGridView.spinTo()` lands the final reel. Similarly, 2-Scatter anticipation glows only activate dynamically as each reel visually lands.
-3. **PixiJS v8 + GSAP Animation Pipeline:**
-   Each `ReelColumn` recycles 4 sprites inside a `Graphics`-masked `Container` driven by PixiJS's 60fps `Ticker` with a vertical `BlurFilter` during high-speed scroll. GSAP handles declarative timelines (`back.out(2.2)` landing bounce, pulsing `symbol_overlay.png` win frames, winning symbol scale pop with non-winner dimming, and rolling win count-ups) with clean `killTweensOf` cancellation on Quick Stop.
-4. **Guarded Finite State Machine (`GameStateMachine`):**
-   An explicit `ALLOWED_TRANSITIONS` table (`BOOT → IDLE → SPINNING → EVALUATING → WIN_PRESENTATION → BONUS_INTRO → BONUS_ACTIVE → BONUS_OUTRO → IDLE`) prevents double-spins, mid-spin bet changes, and invalid bonus transitions.
-5. **Proactive Asset Normalization Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):**
-   Designer handoffs often arrive with inconsistent naming (`symbol_high3.png`, `Symbol high_4.png`, `symbol_low4.png`) and oversized `1254×1254` textures (~9.7 MB total). I separated this step into [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) (`npm run assets:normalize`) to automatically map raw filenames to clean canonical names and downscale copies to `512×512` (~2.2 MB total, ~77% smaller) for fast WebGL loading. Keeping it isolated makes it straightforward to extend into a full studio asset tool (spritesheet/atlas packing, WebP conversion, and schema validation). Alongside these, `WILD` and `SCATTER` emblems are procedurally generated in matching gold-and-ruby style.
-6. **Zero-Dependency Procedural Web Audio:**
-   Button clicks, spin whooshes, pitched per-reel stop thuds, win arpeggios, and bonus fanfares are synthesized via the Web Audio API, eliminating external audio file loading or licensing overhead.
-7. **Deterministic Testing & Automated CI/CD:**
-   A Mulberry32 `SeededRng` makes payline, Wild/Scatter, and Free Spins tests 100% reproducible (`20/20` Vitest tests passing across core math, state machine, controller cancellation/bonus flows, and responsive layout math). Every push to `main` automatically runs `npm test` and `npm run build` via GitHub Actions before deploying to GitHub Pages.
+A compact summary of how the project was planned, built, reviewed, and hardened:
+
+| Step | Focus | Key Engineering & QA Actions |
+| :--- | :--- | :--- |
+| 1 | **Planning & Scope** | <ul><li>Defined slot spec: 5×3 grid, 20 paylines, Wild/Scatter math, Free Spins bonus</li><li>Selected PixiJS v8 + strict TypeScript + GSAP + Vitest + Vite stack</li></ul> |
+| 2 | **Asset Normalization** | <ul><li>Audited raw designer PNGs for inconsistent naming and oversized `1254×1254` dimensions</li><li>Isolated [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) (`512×512`, ~77% size cut) for future studio tooling</li></ul> |
+| 3 | **Pure Core Engine** | <ul><li>Built DOM-free `evaluator.ts`, `slotEngine.ts`, `stateMachine.ts`, and Mulberry32 `SeededRng`</li><li>Verified paylines, Wild substitution, progressive bonus multipliers, and re-triggers</li></ul> |
+| 4 | **PixiJS Presentation** | <ul><li>Implemented masked 4-sprite `ReelColumn`, `BlurFilter`, anticipation glow, and win overlays</li><li>Added procedural gold-and-ruby `WILD`/`SCATTER` emblems and Web Audio SFX</li></ul> |
+| 5 | **Controller & Spoiler-Free UX** | <ul><li>Wired `GameController` + `PresentationAdapter` with `DEMO BONUS`, `AUTO`, `TURBO`, and `Quick Stop`</li><li>Withheld `WIN` / `BonusState` HUD updates until final reel landing</li></ul> |
+| 6 | **Visual & HUD QA** | <ul><li>Tested live gameplay and caught `REFILL +1000` mid-spin flash and uneven `-`/`+` bet spacing</li><li>Centered `BET` steppers, tightened `isIdle` gating, and added one-click `RESET`</li></ul> |
+| 7 | **Paytable & Audio Audit** | <ul><li>Replaced text-only info view with visual symbol icons and bet-scaled payouts</li><li>Caught subtle logic/audio edge cases (missing `playClick` / `playSpin`, duplicate quick-stop SFX)</li></ul> |
+| 8 | **Mobile & Zoom Hardening** | <ul><li>Identified mobile portrait squeeze, notch/address-bar clipping, and desktop zoom DPR drift</li><li>Added dual-orientation `820×1060` portrait reflow, `100dvh`, `safe-area-inset-*`, and live DPR sync</li></ul> |
+| 9 | **Cancellation & Text Bounds** | <ul><li>Tested interrupting `AUTO` / `DEMO BONUS` and found unstoppable loops and banner text overflow</li><li>Implemented `runId` async cancellation, `STOP ALL` mode, `forceStop()`, and `wordWrap` clamping</li></ul> |
+| 10 | **Automated Tests & CI/CD** | <ul><li>Expanded Vitest suite to `20/20` tests (core math, FSM, cancellation flows, layout math)</li><li>Configured GitHub Actions (`npm test` → `tsc --noEmit` → `vite build` → GitHub Pages)</li></ul> |
