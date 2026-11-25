@@ -4,191 +4,191 @@
       "frame": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "high_sapphire.png": {
       "frame": {
-        "x": 512,
+        "x": 768,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "high_emerald.png": {
       "frame": {
-        "x": 1024,
+        "x": 1536,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "high_amethyst.png": {
       "frame": {
         "x": 0,
-        "y": 512,
-        "w": 512,
-        "h": 512
+        "y": 768,
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "low_a.png": {
       "frame": {
-        "x": 512,
-        "y": 512,
-        "w": 512,
-        "h": 512
+        "x": 768,
+        "y": 768,
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "low_k.png": {
       "frame": {
-        "x": 1024,
-        "y": 512,
-        "w": 512,
-        "h": 512
+        "x": 1536,
+        "y": 768,
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "low_q.png": {
       "frame": {
         "x": 0,
-        "y": 1024,
-        "w": 512,
-        "h": 512
+        "y": 1536,
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "low_j.png": {
       "frame": {
-        "x": 512,
-        "y": 1024,
-        "w": 512,
-        "h": 512
+        "x": 768,
+        "y": 1536,
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     },
     "symbol_overlay.png": {
       "frame": {
-        "x": 1024,
-        "y": 1024,
-        "w": 512,
-        "h": 512
+        "x": 1536,
+        "y": 1536,
+        "w": 768,
+        "h": 768
       },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": {
         "x": 0,
         "y": 0,
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       },
       "sourceSize": {
-        "w": 512,
-        "h": 512
+        "w": 768,
+        "h": 768
       }
     }
   },
   "meta": {
     "app": "royal-jewel-vault-asset-pipeline",
-    "version": "2.0",
+    "version": "2.1",
     "image": "symbols.webp",
     "format": "RGBA8888",
     "size": {
-      "w": 1536,
-      "h": 1536
+      "w": 2304,
+      "h": 2304
     },
     "scale": "1"
   }

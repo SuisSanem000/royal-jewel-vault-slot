@@ -60,7 +60,7 @@ npm run preview # Preview production build locally
 
 ```text
 royal-jewel-vault-slot/
-├── scripts/normalize-assets.mjs   # Designer-asset renamer, 512×512 resizer & WebP atlas packer
+├── scripts/normalize-assets.mjs   # Designer-asset renamer, 768×768 Lanczos resizer & WebP atlas packer
 ├── public/assets/symbols/         # WebP texture atlas (symbols.webp + symbols.json) + PNGs
 ├── src/
 │   ├── core/                      # Pure TypeScript — zero PixiJS or DOM imports
@@ -93,7 +93,7 @@ royal-jewel-vault-slot/
 - **Spoiler-Free Presentation:** Outcomes resolve upfront in `SlotEngine.spin()`, while `WIN`, `BonusState`, and 2-Scatter anticipation glows reveal only as reels land.
 - **PixiJS v8 + GSAP Pipeline:** 4-sprite recycled `ReelColumn` inside a `Graphics` mask, `Ticker`-driven scroll with `BlurFilter`, GSAP `back.out(2.2)` bounce, pulsing `symbol_overlay.png` frames, and clean `forceStop` / `killTweensOf` teardown.
 - **Guarded FSM & Cancellation:** `ALLOWED_TRANSITIONS` prevents invalid states; `runId` cancellation tokens + `forceStop()` guarantee `STOP ALL` / `RESET` never leaves dangling timers or half-finished bonus flows.
-- **Asset Normalization & WebP Atlas Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):** Maps raw designer filenames, resizes `1254×1254` PNGs (`~9.7 MB`) to `512×512`, and packs them into a single `426.8 KB` WebP spritesheet (`symbols.webp` + validated `symbols.json`, >95% lighter).
+- **Asset Normalization & WebP Atlas Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):** Maps raw designer filenames, resizes `1254×1254` PNGs (`~9.7 MB`) via Lanczos to `768×768`, and packs them into a single `~1.05 MB` high-quality WebP spritesheet (`symbols.webp` + validated `symbols.json`, ~89% lighter while crisp on 2K/4K & 3× Retina screens).
 - **Zero-Dependency Web Audio:** Synthesizes UI clicks, spin whooshes, pitched reel stops, win arpeggios, and bonus fanfares with no external audio files.
 
 ---
@@ -103,9 +103,9 @@ royal-jewel-vault-slot/
 - **Dual-Orientation Virtual Stage ([`layout.ts`](./src/presentation/layout.ts), [`SlotStage.ts`](./src/presentation/SlotStage.ts)):** Auto-switches between `1280×720` (desktop/landscape) and `820×1060` (portrait when `h > w × 1.05`).
 - **Thumb-Zone Mobile HUD & Modal Scaling ([`HudView.ts`](./src/presentation/ui/HudView.ts), [`Overlays.ts`](./src/presentation/ui/Overlays.ts)):** Portrait mode reflows into a `780×352` 3-row card (`360×96` `SPIN`, `56×56` `-`/`+`, `170×68` toggles); `PaytableModal` and `ModalBanner` auto-center, word-wrap, and scale to fit narrow screens.
 - **Viewport, Notches & Touch ([`index.html`](./index.html)):** Uses `100dvh` (`100%` fallback), `viewport-fit=cover`, `env(safe-area-inset-*)` padding, `overscroll-behavior: none`, `touch-action`, and `-webkit-tap-highlight-color: transparent` without blocking accessibility zoom.
-- **Browser Zoom & DPR Cap:** Clamps `devicePixelRatio` to `[1, 2]` and updates `renderer.resolution` live on `window.resize`, `visualViewport.resize`, and `screen.orientation` changes.
+- **Browser Zoom & 3× DPR Support:** Clamps `devicePixelRatio` to `[1, 3]` for native 3× mobile Retina and 2K/4K sharpness, updating `renderer.resolution` live on `window.resize`, `visualViewport.resize`, and `screen.orientation` changes.
 - **WebGL Context Loss & Tab Visibility:** `webglcontextlost`/`webglcontextrestored` DOM recovery overlay; `visibilitychange`/`blur` pauses PixiJS `Ticker`, GSAP, and Web Audio.
-- **Texture Atlas & Font Preloading:** [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) packs all 9 symbols into a single `426.8 KB` WebP spritesheet (`symbols.webp` + `symbols.json`, >95% smaller than raw `9.7 MB` PNGs) loaded with a live `%` progress bar after `document.fonts.ready`.
+- **High-Res Texture Atlas & Font Preloading:** [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) packs all 9 `768×768` Lanczos symbols into a single `~1.05 MB` WebP spritesheet (`symbols.webp` + `symbols.json`, quality `96`) loaded with a live `%` progress bar after `document.fonts.ready`.
 - **Accessibility & Persistence:** `prefers-reduced-motion` disables blur, bounce, and sparkles; `localStorage` persists mute/turbo/bet safely inside `try/catch` (Private Mode & sandboxed iframe safe).
 
 ---

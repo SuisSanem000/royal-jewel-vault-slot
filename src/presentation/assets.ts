@@ -44,12 +44,15 @@ function createEmblemTexture(
   primary: string,
   secondary: string,
 ): Texture {
-  const size = 256;
+  const logicalSize = 256;
+  const scale = 2; // Render at 512x512 for crisp 3x mobile & 2K/4K displays
   const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = logicalSize * scale;
+  canvas.height = logicalSize * scale;
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(scale, scale);
 
+  const size = logicalSize;
   const cx = size / 2;
   const cy = size / 2;
   const bg = ctx.createRadialGradient(cx, cy - 20, 14, cx, cy, 108);

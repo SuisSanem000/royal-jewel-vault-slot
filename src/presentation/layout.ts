@@ -12,10 +12,10 @@ export interface StageLayout {
   offsetY: number;
 }
 
-/** Clamps devicePixelRatio to [1, 2] to preserve Retina crispness while capping mobile GPU fill rate. */
+/** Clamps devicePixelRatio to [1, 3] for native 3x mobile Retina & 2K/4K sharpness. */
 export function clampDevicePixelRatio(dpr: number): number {
   if (!Number.isFinite(dpr) || dpr <= 1) return 1;
-  return Math.min(dpr, 2);
+  return Math.min(dpr, 3);
 }
 
 /** Computes responsive landscape or portrait virtual stage coordinates anchored cleanly inside the viewport. */

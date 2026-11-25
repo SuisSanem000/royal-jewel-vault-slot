@@ -58,13 +58,13 @@ describe('computeStageLayout', () => {
 });
 
 describe('clampDevicePixelRatio', () => {
-  it('clamps DPR to [1, 2] for zoom and high-density mobile screens', () => {
+  it('clamps DPR to [1, 3] for zoom and 3x Retina mobile/4K screens', () => {
     expect(clampDevicePixelRatio(0.5)).toBe(1);
     expect(clampDevicePixelRatio(1)).toBe(1);
     expect(clampDevicePixelRatio(1.5)).toBe(1.5);
     expect(clampDevicePixelRatio(2)).toBe(2);
-    expect(clampDevicePixelRatio(3)).toBe(2);
-    expect(clampDevicePixelRatio(4)).toBe(2);
+    expect(clampDevicePixelRatio(3)).toBe(3);
+    expect(clampDevicePixelRatio(4)).toBe(3);
     expect(clampDevicePixelRatio(Number.NaN)).toBe(1);
   });
 });
