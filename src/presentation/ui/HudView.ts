@@ -47,6 +47,7 @@ export class HudView extends Container {
   private readonly autoBtn: ReturnType<typeof makeButton>;
   private readonly turboBtn: ReturnType<typeof makeButton>;
   private readonly muteBtn: ReturnType<typeof makeButton>;
+  private readonly infoBtn: ReturnType<typeof makeButton>;
   private readonly demoBtn: ReturnType<typeof makeButton>;
   private readonly resetBtn: ReturnType<typeof makeButton>;
   private readonly refillBtn: ReturnType<typeof makeButton>;
@@ -88,9 +89,9 @@ export class HudView extends Container {
     this.turboBtn.container.position.set(889, 26);
     this.turboBtn.container.on('pointertap', callbacks.onToggleTurbo);
 
-    const infoBtn = makeButton('INFO', 74, 44, 0x3b0d22, 0xd97706, 13);
-    infoBtn.container.position.set(983, 26);
-    infoBtn.container.on('pointertap', callbacks.onTogglePaytable);
+    this.infoBtn = makeButton('INFO', 74, 44, 0x3b0d22, 0xd97706, 13);
+    this.infoBtn.container.position.set(983, 26);
+    this.infoBtn.container.on('pointertap', callbacks.onTogglePaytable);
 
     this.muteBtn = makeButton('SFX ON', 84, 44, 0x3b0d22, 0xd97706, 13);
     this.muteBtn.container.position.set(1067, 26);
@@ -98,15 +99,15 @@ export class HudView extends Container {
 
     // Discreet evaluator shortcut to test Bonus Game on demand
     this.demoBtn = makeButton('DEMO BONUS', 120, 32, 0x4c1d95, 0xfacc15, 12);
-    this.demoBtn.container.position.set(1056, -42);
+    this.demoBtn.container.position.set(1056, -40);
     this.demoBtn.container.on('pointertap', callbacks.onDemoBonus);
 
     this.resetBtn = makeButton('RESET', 84, 32, 0x3b0d22, 0xd97706, 12);
-    this.resetBtn.container.position.set(4, -42);
+    this.resetBtn.container.position.set(4, -40);
     this.resetBtn.container.on('pointertap', callbacks.onReset);
 
     this.refillBtn = makeButton('REFILL +1000', 130, 32, 0x15803d, 0xfacc15, 12);
-    this.refillBtn.container.position.set(98, -42);
+    this.refillBtn.container.position.set(98, -40);
     this.refillBtn.container.visible = false;
     this.refillBtn.container.on('pointertap', callbacks.onRefill);
 
@@ -116,7 +117,7 @@ export class HudView extends Container {
       this.spinBtn.container,
       this.autoBtn.container,
       this.turboBtn.container,
-      infoBtn.container,
+      this.infoBtn.container,
       this.muteBtn.container,
       this.demoBtn.container,
       this.resetBtn.container,
@@ -150,10 +151,12 @@ export class HudView extends Container {
 
   setBet(bet: number, locked: boolean): void {
     this.betVal.text = bet.toFixed(2);
-    this.betDownBtn.container.alpha = locked ? 0.4 : 1;
-    this.betUpBtn.container.alpha = locked ? 0.4 : 1;
-    this.demoBtn.container.alpha = locked ? 0.4 : 1;
-    this.resetBtn.container.alpha = locked ? 0.4 : 1;
+    const alpha = locked ? 0.4 : 1;
+    const cursor = locked ? 'default' : 'pointer';
+    for (const btn of [this.betDownBtn, this.betUpBtn, this.demoBtn, this.resetBtn, this.infoBtn]) {
+      btn.container.alpha = alpha;
+      btn.container.cursor = cursor;
+    }
   }
 
   setWin(amount: number, animate = true): void {
@@ -176,6 +179,7 @@ export class HudView extends Container {
   setSpinLabel(label: string, enabled: boolean): void {
     this.spinBtn.text.text = label;
     this.spinBtn.container.alpha = enabled ? 1 : 0.55;
+    this.spinBtn.container.cursor = enabled ? 'pointer' : 'default';
   }
 
   setAutoActive(active: boolean): void {

@@ -24,14 +24,14 @@ export class SlotStage {
       text: 'ROYAL JEWEL VAULT',
       style: {
         fill: 0xfacc15,
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: '900',
         fontFamily: 'Georgia, serif',
         letterSpacing: 3,
       },
     });
     this.titleText.anchor.set(0.5);
-    this.titleText.position.set(STAGE_WIDTH / 2, 38);
+    this.titleText.position.set(STAGE_WIDTH / 2, 26);
 
     this.root.addChild(this.bgBase, this.bgBonus, this.titleText);
   }
@@ -49,7 +49,7 @@ export class SlotStage {
     this.root.addChild(this.fxLayer);
 
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    this.app.renderer.on('resize', () => this.resize());
   }
 
   resize(): void {

@@ -88,10 +88,12 @@ export class SlotEngine {
     }
 
     if (forceBonus) {
-      // Guarantee 3 scatters on reels 0, 2, 4 for demo/QA testing
-      grid[0][1] = 'SCATTER';
-      grid[2][1] = 'SCATTER';
-      grid[4][1] = 'SCATTER';
+      // Guarantee 3 scatters on reels 0, 2, 4 without duplicating scatters in a column
+      for (const col of [0, 2, 4]) {
+        if (!grid[col].includes('SCATTER')) {
+          grid[col][1] = 'SCATTER';
+        }
+      }
     }
 
     return grid;

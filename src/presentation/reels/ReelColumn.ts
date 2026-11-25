@@ -108,6 +108,8 @@ export class ReelColumn extends Container {
 
   startSpin(): void {
     this.clearTimers();
+    gsap.killTweensOf(this);
+    this.y = 0;
     this.spinning = true;
     this.speed = 42;
     this.blurFilter.strengthY = 7;
@@ -154,12 +156,13 @@ export class ReelColumn extends Container {
 
   update(deltaSeconds: number): void {
     if (!this.spinning) return;
-    const step = this.speed * (deltaSeconds * 60);
+    const clampedDelta = Math.min(deltaSeconds, 0.05);
+    const step = this.speed * (clampedDelta * 60);
     this.scrollOffset += step;
 
     for (const sprite of this.sprites) {
       sprite.y += step;
-      if (sprite.y > (ROW_COUNT + 0.5) * this.cellSize) {
+      while (sprite.y > (ROW_COUNT + 0.5) * this.cellSize) {
         sprite.y -= (ROW_COUNT + 1) * this.cellSize;
         sprite.texture = this.symbolTextures[this.randomSymbol()];
         this.fitSprite(sprite);

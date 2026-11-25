@@ -3,7 +3,7 @@ import type { GameStateMachine } from '../core/stateMachine';
 import type { BonusState, Grid, LineWin, ScatterWin } from '../core/types';
 
 export interface PresentationAdapter {
-  updateHud(balance: number, bet: number, win: number, bonus: BonusState, canSpin: boolean): void;
+  updateHud(balance: number, bet: number, win: number, bonus: BonusState, isIdle: boolean): void;
   setSpinButton(label: string, enabled: boolean): void;
   setAutoActive(active: boolean): void;
   setTurboActive(active: boolean): void;
@@ -24,6 +24,8 @@ export class GameController {
   private readonly view: PresentationAdapter;
   private autoSpin = false;
   private turbo = false;
+  private quickStopped = false;
+  private autoTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly delayMs: number;
 
   constructor(
@@ -38,6 +40,10 @@ export class GameController {
     this.delayMs = delayMs;
   }
 
+  get isIdle(): boolean {
+    return this.fsm.state === 'IDLE' && !this.engine.bonus.active;
+  }
+
   start(): void {
     this.fsm.transition('IDLE');
     this.syncHud(0);
@@ -45,7 +51,7 @@ export class GameController {
   }
 
   handleBetUp(): void {
-    if (this.fsm.state !== 'IDLE' || this.engine.bonus.active) return;
+    if (!this.isIdle) return;
     this.view.playClick();
     this.engine.increaseBet();
     this.syncHud(0);
@@ -53,7 +59,7 @@ export class GameController {
   }
 
   handleBetDown(): void {
-    if (this.fsm.state !== 'IDLE' || this.engine.bonus.active) return;
+    if (!this.isIdle) return;
     this.view.playClick();
     this.engine.decreaseBet();
     this.syncHud(0);
@@ -61,7 +67,7 @@ export class GameController {
   }
 
   handleRefill(): void {
-    if (this.fsm.state !== 'IDLE') return;
+    if (!this.isIdle) return;
     this.view.playClick();
     this.engine.refillCredits();
     this.syncHud(0);
@@ -69,20 +75,28 @@ export class GameController {
   }
 
   handleReset(): void {
-    if (this.fsm.state !== 'IDLE') return;
+    if (!this.isIdle) return;
     this.view.playClick();
-    this.autoSpin = false;
-    this.view.setAutoActive(false);
+    this.stopAutoSpin();
     this.view.clearWins();
     this.engine.reset();
     this.syncHud(0);
     this.view.setSpinButton('SPIN', this.engine.canSpin());
   }
 
+  stopAutoSpin(): void {
+    this.clearAutoTimer();
+    if (this.autoSpin) {
+      this.autoSpin = false;
+      this.view.setAutoActive(false);
+    }
+  }
+
   handleToggleAuto(): void {
     this.view.playClick();
     this.autoSpin = !this.autoSpin;
     this.view.setAutoActive(this.autoSpin);
+    this.clearAutoTimer();
     if (this.autoSpin && this.fsm.state === 'IDLE') {
       void this.handleSpin();
     }
@@ -94,32 +108,61 @@ export class GameController {
     this.view.setTurboActive(this.turbo);
   }
 
-  async handleSpin(forceBonus = false): Promise<void> {
+  async handleDemoBonus(): Promise<void> {
+    if (!this.isIdle) return;
+    if (!this.engine.canSpin()) return;
+    this.clearAutoTimer();
+    await this.executeSpin({ forceBonus: true });
+    this.scheduleNextAutoSpin();
+  }
+
+  async handleSpin(): Promise<void> {
     if (this.fsm.state === 'SPINNING') {
-      this.view.quickStopReels();
+      if (!this.quickStopped) {
+        this.quickStopped = true;
+        this.view.setSpinButton('STOP', false);
+        this.view.quickStopReels();
+      }
       return;
     }
 
     if (this.fsm.state !== 'IDLE') return;
     if (!this.engine.canSpin()) {
-      this.autoSpin = false;
-      this.view.setAutoActive(false);
+      this.stopAutoSpin();
       return;
     }
 
-    await this.executeSpin({ forceBonus });
+    this.clearAutoTimer();
+    await this.executeSpin();
+    this.scheduleNextAutoSpin();
+  }
 
-    if (this.autoSpin && this.fsm.state === 'IDLE' && this.engine.canSpin()) {
-      await this.pause(this.delayMs);
+  private scheduleNextAutoSpin(): void {
+    this.clearAutoTimer();
+    if (!this.autoSpin || this.fsm.state !== 'IDLE') return;
+    if (!this.engine.canSpin()) {
+      this.stopAutoSpin();
+      return;
+    }
+    this.autoTimer = setTimeout(() => {
+      this.autoTimer = null;
       if (this.autoSpin && this.fsm.state === 'IDLE') {
         void this.handleSpin();
       }
+    }, this.delayMs);
+  }
+
+  private clearAutoTimer(): void {
+    if (this.autoTimer) {
+      clearTimeout(this.autoTimer);
+      this.autoTimer = null;
     }
   }
 
   private async executeSpin(options: { forceBonus?: boolean } = {}): Promise<void> {
     const isFreeSpin = this.engine.bonus.active;
     const preSpinBonus = this.engine.bonus;
+    this.quickStopped = false;
     this.fsm.transition('SPINNING');
     this.view.clearWins();
     this.view.playSpin();
@@ -180,7 +223,7 @@ export class GameController {
     this.view.setBonusMood(true);
     await this.view.showBanner(
       'ROYAL FREE SPINS!',
-      `${bonus.spinsAwardedTotal} Free Spins Awarded\nWins boost Multiplier: 1x → 2x → 3x → 5x`,
+      `${bonus.spinsAwardedTotal} Free Spins Awarded\nEach Winning Spin Boosts Multiplier: 1x → 2x → 3x → 5x`,
       1700,
     );
 
@@ -212,7 +255,7 @@ export class GameController {
       this.engine.bet,
       winAmount,
       this.engine.bonus,
-      this.engine.canSpin(),
+      this.isIdle,
     );
   }
 

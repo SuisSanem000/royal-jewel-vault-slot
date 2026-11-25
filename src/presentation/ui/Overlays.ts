@@ -14,28 +14,28 @@ export class BonusHeaderBar extends Container {
     this.visible = false;
 
     const bg = new Graphics()
-      .roundRect(0, 0, 780, 52, 14)
+      .roundRect(0, 0, 780, 44, 12)
       .fill({ color: 0x581c87, alpha: 0.94 })
       .stroke({ width: 3, color: 0xfacc15 });
     this.addChild(bg);
 
     this.spinsText = new Text({
       text: 'FREE SPINS: 8',
-      style: { fill: 0xfff8dc, fontSize: 20, fontWeight: '800' },
+      style: { fill: 0xfff8dc, fontSize: 18, fontWeight: '800' },
     });
-    this.spinsText.position.set(28, 14);
+    this.spinsText.position.set(28, 11);
 
     this.multText = new Text({
       text: 'MULTIPLIER: 1x',
-      style: { fill: 0xfacc15, fontSize: 20, fontWeight: '900' },
+      style: { fill: 0xfacc15, fontSize: 18, fontWeight: '900' },
     });
-    this.multText.position.set(285, 14);
+    this.multText.position.set(285, 11);
 
     this.totalText = new Text({
       text: 'BONUS WIN: 0.00',
-      style: { fill: 0x86efac, fontSize: 20, fontWeight: '800' },
+      style: { fill: 0x86efac, fontSize: 18, fontWeight: '800' },
     });
-    this.totalText.position.set(525, 14);
+    this.totalText.position.set(525, 11);
 
     this.addChild(this.spinsText, this.multText, this.totalText);
   }
@@ -127,6 +127,10 @@ const PAYTABLE_ORDER: Exclude<SymbolId, 'SCATTER'>[] = [
 ];
 
 export class PaytableModal extends Container {
+  private readonly lineTexts = new Map<Exclude<SymbolId, 'SCATTER'>, Text>();
+  private readonly scatterText: Text;
+  private readonly titleText: Text;
+
   constructor(stageWidth: number, stageHeight: number, textures?: GameTextures) {
     super();
     this.visible = false;
@@ -139,10 +143,10 @@ export class PaytableModal extends Container {
       this.visible = false;
     });
 
-    const left = stageWidth / 2 - 410;
+    const left = stageWidth / 2 - 420;
     const top = stageHeight / 2 - 260;
     const panel = new Graphics()
-      .roundRect(left, top, 820, 520, 20)
+      .roundRect(left, top, 840, 520, 20)
       .fill({ color: 0x1f0814, alpha: 0.98 })
       .stroke({ width: 4, color: 0xfacc15 });
     panel.eventMode = 'static';
@@ -150,19 +154,18 @@ export class PaytableModal extends Container {
       this.visible = false;
     });
 
-    const title = new Text({
-      text: 'ROYAL JEWEL VAULT — PAYTABLE & RULES',
-      style: { fill: 0xfacc15, fontSize: 24, fontWeight: '900', fontFamily: 'Georgia, serif' },
+    this.titleText = new Text({
+      text: 'ROYAL JEWEL VAULT — PAYTABLE (FOR BET 5.00)',
+      style: { fill: 0xfacc15, fontSize: 22, fontWeight: '900', fontFamily: 'Georgia, serif' },
     });
-    title.position.set(left + 32, top + 24);
+    this.titleText.position.set(left + 32, top + 24);
 
-    this.addChild(backdrop, panel, title);
+    this.addChild(backdrop, panel, this.titleText);
 
-    // 2-column visual symbol payout grid
     PAYTABLE_ORDER.forEach((sym, i) => {
       const col = i < 5 ? 0 : 1;
       const row = i < 5 ? i : i - 5;
-      const x = left + 32 + col * 395;
+      const x = left + 32 + col * 405;
       const y = top + 74 + row * 56;
 
       if (textures) {
@@ -174,36 +177,34 @@ export class PaytableModal extends Container {
         this.addChild(icon);
       }
 
-      const p = PAYTABLE[sym];
-      const label = sym.replace('HIGH_', '').replace('LOW_', '');
       const line = new Text({
-        text: `${label}   3x: ${p[3]}  |  4x: ${p[4]}  |  5x: ${p[5]}`,
+        text: '',
         style: { fill: 0xfff8dc, fontSize: 15, fontWeight: '600', fontFamily: 'system-ui, sans-serif' },
       });
-      line.position.set(x + 58, y + 12);
+      line.position.set(x + 56, y + 12);
+      this.lineTexts.set(sym, line);
       this.addChild(line);
     });
 
-    // Scatter entry in column 2 row 5
     if (textures) {
       const scatterIcon = new Sprite(textures.symbols.SCATTER);
       scatterIcon.anchor.set(0.5);
       const s = 44 / Math.max(scatterIcon.texture.width || 1, scatterIcon.texture.height || 1);
       scatterIcon.scale.set(s);
-      scatterIcon.position.set(left + 32 + 395 + 22, top + 74 + 4 * 56 + 22);
+      scatterIcon.position.set(left + 32 + 405 + 22, top + 74 + 4 * 56 + 22);
       this.addChild(scatterIcon);
     }
-    const scatterLine = new Text({
-      text: `SCATTER  3/4/5 → ${SCATTER_FREE_SPINS[3]}/${SCATTER_FREE_SPINS[4]}/${SCATTER_FREE_SPINS[5]} Spins (${SCATTER_PAYOUTS[3]}x/${SCATTER_PAYOUTS[4]}x/${SCATTER_PAYOUTS[5]}x)`,
+    this.scatterText = new Text({
+      text: '',
       style: { fill: 0xfde68a, fontSize: 14, fontWeight: '700', fontFamily: 'system-ui, sans-serif' },
     });
-    scatterLine.position.set(left + 32 + 395 + 58, top + 74 + 4 * 56 + 13);
-    this.addChild(scatterLine);
+    this.scatterText.position.set(left + 32 + 405 + 56, top + 74 + 4 * 56 + 13);
+    this.addChild(this.scatterText);
 
     const rules = new Text({
       text: [
-        '• 5 Reels × 3 Rows | 20 Fixed Paylines (Left to Right) | Payouts scale with Bet ÷ 10',
-        '• WILD substitutes for all regular symbols',
+        '• 5 Reels × 3 Rows | 20 Fixed Paylines (Left to Right, starting from leftmost reel)',
+        '• WILD substitutes for all regular symbols (highest win paid per line)',
         '• Free Spins Bonus: Each winning spin steps multiplier up 1x → 2x → 3x → 5x (re-triggers add spins)',
         '• Controls: SPIN or SPACE (press again to Quick Stop)  |  Click anywhere or press ESC / SPACE to close',
       ].join('\n'),
@@ -216,6 +217,25 @@ export class PaytableModal extends Container {
     });
     rules.position.set(left + 32, top + 382);
     this.addChild(rules);
+
+    this.updatePayouts(5);
+  }
+
+  updatePayouts(bet: number): void {
+    this.titleText.text = `ROYAL JEWEL VAULT — PAYTABLE (FOR BET ${bet.toFixed(2)})`;
+    const lineBet = bet / 10;
+    const fmt = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
+
+    for (const sym of PAYTABLE_ORDER) {
+      const p = PAYTABLE[sym];
+      const label = sym.replace('HIGH_', '').replace('LOW_', '');
+      const line = this.lineTexts.get(sym);
+      if (line) {
+        line.text = `${label}   3: ${fmt(p[3] * lineBet)}  |  4: ${fmt(p[4] * lineBet)}  |  5: ${fmt(p[5] * lineBet)}`;
+      }
+    }
+
+    this.scatterText.text = `SCATTER  3/4/5 → ${SCATTER_FREE_SPINS[3]}/${SCATTER_FREE_SPINS[4]}/${SCATTER_FREE_SPINS[5]} Spins + ${fmt(SCATTER_PAYOUTS[3] * bet)}/${fmt(SCATTER_PAYOUTS[4] * bet)}/${fmt(SCATTER_PAYOUTS[5] * bet)}`;
   }
 
   toggle(): void {

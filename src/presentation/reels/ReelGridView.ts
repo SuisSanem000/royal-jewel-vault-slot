@@ -16,7 +16,7 @@ export class ReelGridView extends Container {
   private readonly cellSize: number;
   private readonly colGap = 10;
 
-  constructor(textures: GameTextures, initialGrid: Grid, cellSize = 148) {
+  constructor(textures: GameTextures, initialGrid: Grid, cellSize = 140) {
     super();
     this.textures = textures;
     this.cellSize = cellSize;
@@ -112,7 +112,15 @@ export class ReelGridView extends Container {
 
   quickStop(onReelStop: (col: number) => void): void {
     this.anticipationGraphics.clear();
-    this.columns.forEach((col, idx) => col.quickStop(() => onReelStop(idx)));
+    let playedSound = false;
+    this.columns.forEach((col, idx) =>
+      col.quickStop(() => {
+        if (!playedSound) {
+          playedSound = true;
+          onReelStop(idx);
+        }
+      }),
+    );
   }
 
   private showAnticipation(colIndex: number): void {

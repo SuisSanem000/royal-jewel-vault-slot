@@ -84,4 +84,16 @@ describe('SlotEngine', () => {
     expect(engine.bet).toBe(5);
     expect(engine.bonus.active).toBe(false);
   });
+
+  it('never places duplicate SCATTER symbols in the same column when forceBonus is true', () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      const engine = new SlotEngine(new SeededRng(seed), 1000);
+      const res = engine.spin({ forceBonus: true });
+      for (const col of res.grid) {
+        const scatterCount = col.filter((s) => s === 'SCATTER').length;
+        expect(scatterCount).toBeLessThanOrEqual(1);
+      }
+      expect(res.triggeredBonus).toBe(true);
+    }
+  });
 });

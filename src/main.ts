@@ -32,10 +32,10 @@ async function bootstrap(): Promise<void> {
   const fsm = new GameStateMachine('BOOT');
 
   const reels = new ReelGridView(textures, initialDisplayGrid());
-  reels.position.set((STAGE_WIDTH - reels.gridWidth) / 2, 118);
+  reels.position.set((STAGE_WIDTH - reels.gridWidth) / 2, 120);
 
   const bonusBar = new BonusHeaderBar();
-  bonusBar.position.set((STAGE_WIDTH - 780) / 2, 56);
+  bonusBar.position.set((STAGE_WIDTH - 780) / 2, 48);
 
   const banner = new ModalBanner(STAGE_WIDTH, STAGE_HEIGHT);
   const paytable = new PaytableModal(STAGE_WIDTH, STAGE_HEIGHT, textures);
@@ -43,24 +43,39 @@ async function bootstrap(): Promise<void> {
   let controller!: GameController;
 
   const hud = new HudView({
-    onSpin: () => void controller.handleSpin(),
+    onSpin: () => {
+      if (paytable.visible) {
+        paytable.visible = false;
+        return;
+      }
+      void controller.handleSpin();
+    },
     onBetUp: () => controller.handleBetUp(),
     onBetDown: () => controller.handleBetDown(),
-    onToggleAuto: () => controller.handleToggleAuto(),
+    onToggleAuto: () => {
+      paytable.visible = false;
+      controller.handleToggleAuto();
+    },
     onToggleTurbo: () => controller.handleToggleTurbo(),
     onToggleMute: () => {
       const muted = sound.toggleMute();
       hud.setMuted(muted);
     },
     onTogglePaytable: () => {
+      if (!paytable.visible && !controller.isIdle) return;
+      controller.stopAutoSpin();
       sound.playClick();
+      paytable.updatePayouts(engine.bet);
       paytable.toggle();
     },
-    onDemoBonus: () => void controller.handleSpin(true),
+    onDemoBonus: () => {
+      paytable.visible = false;
+      void controller.handleDemoBonus();
+    },
     onRefill: () => controller.handleRefill(),
     onReset: () => controller.handleReset(),
   });
-  hud.position.set((STAGE_WIDTH - 1180) / 2, STAGE_HEIGHT - 114);
+  hud.position.set((STAGE_WIDTH - 1180) / 2, STAGE_HEIGHT - 112);
 
   stage.root.addChild(reels, bonusBar, hud, banner, paytable);
 
@@ -69,10 +84,11 @@ async function bootstrap(): Promise<void> {
   });
 
   const adapter: PresentationAdapter = {
-    updateHud(balance, bet, win, bonus) {
-      hud.setBalance(balance, balance < bet && !bonus.active);
-      hud.setBet(bet, bonus.active);
+    updateHud(balance, bet, win, bonus, isIdle) {
+      hud.setBalance(balance, isIdle && !bonus.active && balance < bet);
+      hud.setBet(bet, !isIdle || bonus.active);
       hud.setWin(win, win > 0);
+      paytable.updatePayouts(bet);
       bonusBar.updateBonus(bonus);
     },
     setSpinButton: (label, enabled) => hud.setSpinLabel(label, enabled),
