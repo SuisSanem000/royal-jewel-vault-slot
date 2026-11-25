@@ -19,9 +19,28 @@ export class SoundManager {
     return this._muted;
   }
 
+  setMuted(muted: boolean): void {
+    this._muted = muted;
+  }
+
   toggleMute(): boolean {
     this._muted = !this._muted;
     return this._muted;
+  }
+
+  suspendForBackground(): void {
+    if (this.ctx && this.ctx.state === 'running') {
+      void this.ctx.suspend();
+    }
+  }
+
+  resumeFromBackground(): void {
+    if (!this._muted && this.ctx) {
+      const state = this.ctx.state as string;
+      if (state === 'suspended' || state === 'interrupted') {
+        void this.ctx.resume();
+      }
+    }
   }
 
   private ensureContext(): AudioContext | null {

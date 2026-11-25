@@ -20,7 +20,7 @@ npm run dev
 Open the Vite URL (default: `http://localhost:5173`).
 
 ```bash
-npm test        # Vitest unit & end-to-end flow tests (20/20 passing)
+npm test        # Vitest unit & end-to-end flow tests (31/31 passing)
 npm run build   # Strict TypeScript check (tsc --noEmit) + Vite bundle
 npm run preview # Preview production build locally
 ```
@@ -31,13 +31,19 @@ npm run preview # Preview production build locally
 
 - **Base Game:** 5×3 grid, 20 fixed paylines (left-to-right, 3+ matching symbols), 8 provided gem/royal symbols + `symbol_overlay.png` win frames + procedural `WILD` and `SCATTER` emblems.
 - **Bonus Game (Royal Free Spins):** 3 / 4 / 5 Scatters award `8 / 10 / 12` Free Spins with a progressive win multiplier (`1x → 2x → 3x → 5x`), Scatter re-triggers, `BONUS COMPLETE!` summary, and clean return to base play.
-- **Controls:**
-  - `SPIN` / `Space`: Spin reels; press again mid-spin for **Quick Stop** (`STOP`).
-  - `-` / `+`: Step bet (`1, 2, 5, 10, 20, 50` credits; locked during `AUTO` and `BONUS`).
-  - `AUTO` / `TURBO` / `INFO` / `SFX ON`: Autoplay toggle, fast stops, dynamic Paytable & Rules modal, procedural Web Audio mute toggle.
+- **Controls & Shortcuts:**
+  - `SPIN` / `Space` / `Enter`: Spin reels; press again mid-spin for **Quick Stop** (`STOP`).
+  - `-` / `+` or `ArrowUp` / `ArrowDown`: Step bet (`1, 2, 5, 10, 20, 50` credits; locked during `AUTO` and `BONUS`).
+  - `AUTO`, `TURBO` (`T`), `INFO` (`I`), `SFX ON` (`M`): Autoplay, fast stops, Paytable & Rules modal (`ESC` to close), Web Audio mute.
+  - `FS`: Fullscreen toggle (shown only where `document.fullscreenEnabled` is supported).
   - `DEMO BONUS`: Guarantees a 3-Scatter trigger for quick evaluation.
   - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset (`1000.00` balance, `5.00` bet).
   - `REFILL +1000`: Appears when idle and balance drops below the active bet.
+- **Operator / Compliance Launch Params (URL Query):**
+  - `?currency=EUR&locale=de-DE`: Formats all credits via `Intl.NumberFormat`.
+  - `?ukgc=1&minSpinMs=2500`: Enforces minimum spin floor and disables `AUTO` / `TURBO` / Quick Stop.
+  - `?realityCheckMin=15`: Displays a periodic `REALITY CHECK` session summary modal.
+  - `?rgsUrl=https://...`: Switches from `LocalSlotBackend` to `RgsSlotBackend` (idempotent `Idempotency-Key` + retry + `CONNECTION LOST` recovery).
 
 ---
 
@@ -45,26 +51,29 @@ npm run preview # Preview production build locally
 
 ```text
 royal-jewel-vault-slot/
-├── scripts/normalize-assets.mjs   # Standalone designer-asset renamer & 512×512 resizer
-├── public/assets/symbols/         # Normalized 512×512 PNG assets + favicon
+├── scripts/normalize-assets.mjs   # Designer-asset renamer, 512×512 resizer & WebP atlas packer
+├── public/assets/symbols/         # WebP texture atlas (symbols.webp + symbols.json) + PNGs
 ├── src/
 │   ├── core/                      # Pure TypeScript — zero PixiJS or DOM imports
 │   │   ├── types.ts               # Domain types (Grid, LineWin, BonusState, SpinResult, GameState)
 │   │   ├── config.ts              # Paytable, 20 paylines, 5×28 virtual reel strips, bonus rules
+│   │   ├── format.ts              # Intl.NumberFormat formatting & URL launch config parser
+│   │   ├── backend.ts             # GameBackend interface, LocalSlotBackend & RgsSlotBackend
 │   │   ├── rng.ts                 # Rng interface, MathRng & deterministic Mulberry32 SeededRng
 │   │   ├── evaluator.ts           # Left-to-right payline, WILD substitution & SCATTER evaluator
 │   │   ├── stateMachine.ts        # Guarded FSM + safe reset()
 │   │   └── slotEngine.ts          # Balance accounting, spin resolution & Free Spins lifecycle
 │   ├── presentation/              # PixiJS v8, GSAP timelines & Web Audio
-│   │   ├── assets.ts              # Asset preloader + procedural WILD/SCATTER emblem textures
-│   │   ├── audio.ts               # Zero-dependency Web Audio synthesizer (iOS-hardened)
+│   │   ├── assets.ts              # Font wait + Spritesheet atlas loader (with progress & fallback)
+│   │   ├── audio.ts               # Zero-dependency Web Audio synthesizer (iOS & tab-pause hardened)
+│   │   ├── storage.ts             # Safe localStorage persistence (Private Mode / iframe guarded)
 │   │   ├── layout.ts              # Pure dual-orientation stage & DPR math
-│   │   ├── SlotStage.ts           # Adaptive stage, zoom/DPR sync, backdrop & sparkle FX
+│   │   ├── SlotStage.ts           # Adaptive stage, WebGL recovery, visibility pause & loading bar
 │   │   ├── reels/                 # Masked 4-sprite ReelColumn + staggered 5×3 ReelGridView
 │   │   └── ui/                    # Reflowable HudView + BonusHeaderBar, ModalBanner, PaytableModal
-│   ├── controller/GameController.ts  # Mediates HUD, FSM, SlotEngine & PresentationAdapter
-│   └── main.ts                    # Bootstrap, layout wiring & keyboard shortcuts
-└── tests/                         # core/, presentation/, and controller/ Vitest suites
+│   ├── controller/GameController.ts  # Mediates HUD, FSM, GameBackend & PresentationAdapter
+│   └── main.ts                    # Bootstrap, launch params, visibility & keyboard shortcuts
+└── tests/                         # 31/31 Vitest tests (core, presentation, controller)
 ```
 
 ---
@@ -86,7 +95,9 @@ royal-jewel-vault-slot/
 - **Thumb-Zone Mobile HUD & Modal Scaling ([`HudView.ts`](./src/presentation/ui/HudView.ts), [`Overlays.ts`](./src/presentation/ui/Overlays.ts)):** Portrait mode reflows into a `780×352` 3-row card (`360×96` `SPIN`, `56×56` `-`/`+`, `170×68` toggles); `PaytableModal` and `ModalBanner` auto-center, word-wrap, and scale to fit narrow screens.
 - **Viewport, Notches & Touch ([`index.html`](./index.html)):** Uses `100dvh` (`100%` fallback), `viewport-fit=cover`, `env(safe-area-inset-*)` padding, `overscroll-behavior: none`, `touch-action`, and `-webkit-tap-highlight-color: transparent` without blocking accessibility zoom.
 - **Browser Zoom & DPR Cap:** Clamps `devicePixelRatio` to `[1, 2]` and updates `renderer.resolution` live on `window.resize`, `visualViewport.resize`, and `screen.orientation` changes.
-- **Cross-Browser Canvas & iOS Audio:** Includes an `arcTo` fallback for `ctx.roundRect`, `webkitAudioContext` fallback, first-gesture audio unlock, and iOS `'interrupted'` AudioContext recovery.
+- **WebGL Context Loss & Tab Visibility:** `webglcontextlost`/`webglcontextrestored` DOM recovery overlay; `visibilitychange`/`blur` pauses PixiJS `Ticker`, GSAP, and Web Audio.
+- **Texture Atlas & Font Preloading:** [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) packs all 9 symbols into a single `426.8 KB` WebP spritesheet (`symbols.webp` + `symbols.json`, >95% smaller than raw `9.7 MB` PNGs) loaded with a live `%` progress bar after `document.fonts.ready`.
+- **Accessibility & Persistence:** `prefers-reduced-motion` disables blur, bounce, and sparkles; `localStorage` persists mute/turbo/bet safely inside `try/catch` (Private Mode & sandboxed iframe safe).
 
 ---
 
@@ -105,4 +116,5 @@ A compact summary of how the project was planned, built, reviewed, and hardened:
 | 7 | **Paytable & Audio Audit** | <ul><li>Replaced text-only info view with visual symbol icons and bet-scaled payouts</li><li>Caught subtle logic/audio edge cases (missing `playClick` / `playSpin`, duplicate quick-stop SFX)</li></ul> |
 | 8 | **Mobile & Zoom Hardening** | <ul><li>Identified mobile portrait squeeze, notch/address-bar clipping, and desktop zoom DPR drift</li><li>Added dual-orientation `820×1060` portrait reflow, `100dvh`, `safe-area-inset-*`, and live DPR sync</li></ul> |
 | 9 | **Cancellation & Text Bounds** | <ul><li>Tested interrupting `AUTO` / `DEMO BONUS` and found unstoppable loops and banner text overflow</li><li>Implemented `runId` async cancellation, `STOP ALL` mode, `forceStop()`, and `wordWrap` clamping</li></ul> |
-| 10 | **Automated Tests & CI/CD** | <ul><li>Expanded Vitest suite to `20/20` tests (core math, FSM, cancellation flows, layout math)</li><li>Configured GitHub Actions (`npm test` → `tsc --noEmit` → `vite build` → GitHub Pages)</li></ul> |
+| 10 | **Automated Tests & CI/CD** | <ul><li>Expanded Vitest suite to `31/31` tests (core math, formatting, RGS backend, storage, cancellation, UKGC/Reality Check, layout)</li><li>Configured GitHub Actions (`npm test` → `tsc --noEmit` → `vite build` → GitHub Pages)</li></ul> |
+| 11 | **Production Web-Game & iGaming Standards** | <ul><li>Upgraded asset pipeline to single WebP atlas (`426.8 KB`), added WebGL context recovery, `visibilitychange` pause, `prefers-reduced-motion`, and `localStorage` preferences</li><li>Added `Intl.NumberFormat` launch params, UKGC spin-floor/locks, Reality Check modal, Fullscreen toggle, and `RgsSlotBackend` disconnect recovery</li></ul> |

@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { Container, Graphics, Text } from 'pixi.js';
+import { formatCredits, type FormatConfig } from '../../core/format';
 
 export interface HudCallbacks {
   onSpin: () => void;
@@ -12,6 +13,12 @@ export interface HudCallbacks {
   onDemoBonus: () => void;
   onRefill: () => void;
   onReset: () => void;
+  onToggleFullscreen?: () => void;
+}
+
+export interface HudOptions {
+  format?: FormatConfig;
+  fullscreenSupported?: boolean;
 }
 
 interface HudButton {
@@ -100,22 +107,26 @@ export class HudView extends Container {
   private readonly demoBtn: HudButton;
   private readonly resetBtn: HudButton;
   private readonly refillBtn: HudButton;
+  private readonly fullscreenBtn: HudButton | null = null;
   private readonly betDownBtn: HudButton;
   private readonly betUpBtn: HudButton;
   private readonly winCounter = { v: 0 };
+  private readonly formatConfig: FormatConfig;
   private autoActive = false;
   private turboActive = false;
+  private turboLocked = false;
   private stopAllActive = false;
   private isPortrait = false;
 
-  constructor(callbacks: HudCallbacks) {
+  constructor(callbacks: HudCallbacks, options: HudOptions = {}) {
     super();
+    this.formatConfig = options.format ?? { locale: 'en-US' };
 
     this.addChild(this.bar);
 
-    this.balanceBlock = this.createStatBlock('BALANCE', '1000.00', 165);
-    this.betBlock = this.createStatBlock('BET', '5.00', 96);
-    this.winBlock = this.createStatBlock('WIN', '0.00', 150);
+    this.balanceBlock = this.createStatBlock('BALANCE', formatCredits(1000, this.formatConfig), 165);
+    this.betBlock = this.createStatBlock('BET', formatCredits(5, this.formatConfig), 96);
+    this.winBlock = this.createStatBlock('WIN', formatCredits(0, this.formatConfig), 150);
 
     this.betDownBtn = makeButton('-', 38, 38, 0x3b0d22, 0xeab308, 22);
     this.betDownBtn.container.on('pointertap', callbacks.onBetDown);
@@ -138,7 +149,6 @@ export class HudView extends Container {
     this.muteBtn = makeButton('SFX ON', 84, 44, 0x3b0d22, 0xd97706, 13);
     this.muteBtn.container.on('pointertap', callbacks.onToggleMute);
 
-    // Discreet evaluator shortcut to test Bonus Game on demand
     this.demoBtn = makeButton('DEMO BONUS', 120, 32, 0x4c1d95, 0xfacc15, 12);
     this.demoBtn.container.on('pointertap', callbacks.onDemoBonus);
 
@@ -148,6 +158,12 @@ export class HudView extends Container {
     this.refillBtn = makeButton('REFILL +1000', 130, 32, 0x15803d, 0xfacc15, 12);
     this.refillBtn.container.visible = false;
     this.refillBtn.container.on('pointertap', callbacks.onRefill);
+
+    if (options.fullscreenSupported && callbacks.onToggleFullscreen) {
+      this.fullscreenBtn = makeButton('FS', 68, 32, 0x3b0d22, 0xd97706, 12);
+      this.fullscreenBtn.container.on('pointertap', callbacks.onToggleFullscreen);
+      this.addChild(this.fullscreenBtn.container);
+    }
 
     this.addChild(
       this.betDownBtn.container,
@@ -264,12 +280,16 @@ export class HudView extends Container {
       this.refillBtn.container.position.set(122, -40);
       redrawButton(this.refillBtn, 130, 32, 0x15803d, 0xfacc15, 12);
 
+      if (this.fullscreenBtn) {
+        this.fullscreenBtn.container.position.set(978, -40);
+        redrawButton(this.fullscreenBtn, 68, 32, 0x3b0d22, 0xd97706, 12);
+      }
+
       this.demoBtn.container.position.set(1056, -40);
       redrawButton(this.demoBtn, 120, 32, 0x4c1d95, 0xfacc15, 12);
       return;
     }
 
-    // Portrait layout: 780×352 card with thumb-friendly SPIN & generous touch targets
     this.bar
       .clear()
       .roundRect(0, 0, 780, 352, 22)
@@ -328,18 +348,35 @@ export class HudView extends Container {
     this.refillBtn.container.position.set(136, -48);
     redrawButton(this.refillBtn, 160, 38, 0x15803d, 0xfacc15, 13);
 
+    if (this.fullscreenBtn) {
+      this.fullscreenBtn.container.position.set(542, -48);
+      redrawButton(this.fullscreenBtn, 78, 38, 0x3b0d22, 0xd97706, 13);
+    }
+
     this.demoBtn.container.position.set(632, -48);
     redrawButton(this.demoBtn, 148, 38, 0x4c1d95, 0xfacc15, 13);
   }
 
+  setComplianceMode(opts: { disableTurbo: boolean }): void {
+    this.turboLocked = opts.disableTurbo;
+    this.turboBtn.container.alpha = opts.disableTurbo ? 0.35 : 1;
+    this.turboBtn.container.cursor = opts.disableTurbo ? 'default' : 'pointer';
+  }
+
+  setFullscreenActive(active: boolean): void {
+    if (!this.fullscreenBtn) return;
+    this.fullscreenBtn.text.text = active ? 'EXIT FS' : 'FS';
+    fitTextWidth(this.fullscreenBtn.text, Math.max(16, this.fullscreenBtn.w - 12));
+  }
+
   setBalance(balance: number, showRefill: boolean): void {
-    this.balanceBlock.value.text = balance.toFixed(2);
+    this.balanceBlock.value.text = formatCredits(balance, this.formatConfig);
     fitTextWidth(this.balanceBlock.value, this.balanceBlock.maxWidth);
     this.refillBtn.container.visible = showRefill;
   }
 
   setControlsLocked(bet: number, locked: boolean): void {
-    this.betBlock.value.text = bet.toFixed(2);
+    this.betBlock.value.text = formatCredits(bet, this.formatConfig);
     fitTextWidth(this.betBlock.value, this.betBlock.maxWidth);
     const alpha = locked ? 0.4 : 1;
     const cursor = locked ? 'default' : 'pointer';
@@ -347,9 +384,12 @@ export class HudView extends Container {
       btn.container.alpha = alpha;
       btn.container.cursor = cursor;
     }
-    // RESET / STOP ALL stays enabled at all times
     this.resetBtn.container.alpha = 1;
     this.resetBtn.container.cursor = 'pointer';
+    if (this.turboLocked) {
+      this.turboBtn.container.alpha = 0.35;
+      this.turboBtn.container.cursor = 'default';
+    }
   }
 
   setStopAllMode(active: boolean): void {
@@ -374,7 +414,7 @@ export class HudView extends Container {
     gsap.killTweensOf(this.winCounter);
     if (!animate || amount === 0) {
       this.winCounter.v = amount;
-      this.winBlock.value.text = amount.toFixed(2);
+      this.winBlock.value.text = formatCredits(amount, this.formatConfig);
       fitTextWidth(this.winBlock.value, this.winBlock.maxWidth);
       return;
     }
@@ -383,7 +423,7 @@ export class HudView extends Container {
       duration: 0.65,
       ease: 'power2.out',
       onUpdate: () => {
-        this.winBlock.value.text = this.winCounter.v.toFixed(2);
+        this.winBlock.value.text = formatCredits(this.winCounter.v, this.formatConfig);
         fitTextWidth(this.winBlock.value, this.winBlock.maxWidth);
       },
     });

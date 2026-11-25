@@ -1,4 +1,4 @@
-import { Assets, Texture } from 'pixi.js';
+import { Assets, type Spritesheet, Texture } from 'pixi.js';
 import type { SymbolId } from '../core/types';
 
 export interface GameTextures {
@@ -6,15 +6,15 @@ export interface GameTextures {
   overlay: Texture;
 }
 
-const PNG_MAP: Record<Exclude<SymbolId, 'WILD' | 'SCATTER'>, string> = {
-  HIGH_RUBY: './assets/symbols/high_ruby.png',
-  HIGH_SAPPHIRE: './assets/symbols/high_sapphire.png',
-  HIGH_EMERALD: './assets/symbols/high_emerald.png',
-  HIGH_AMETHYST: './assets/symbols/high_amethyst.png',
-  LOW_A: './assets/symbols/low_a.png',
-  LOW_K: './assets/symbols/low_k.png',
-  LOW_Q: './assets/symbols/low_q.png',
-  LOW_J: './assets/symbols/low_j.png',
+const FRAME_MAP: Record<Exclude<SymbolId, 'WILD' | 'SCATTER'>, string> = {
+  HIGH_RUBY: 'high_ruby.png',
+  HIGH_SAPPHIRE: 'high_sapphire.png',
+  HIGH_EMERALD: 'high_emerald.png',
+  HIGH_AMETHYST: 'high_amethyst.png',
+  LOW_A: 'low_a.png',
+  LOW_K: 'low_k.png',
+  LOW_Q: 'low_q.png',
+  LOW_J: 'low_j.png',
 };
 
 function drawRoundedRect(
@@ -50,7 +50,6 @@ function createEmblemTexture(
   canvas.height = size;
   const ctx = canvas.getContext('2d')!;
 
-  // Outer golden emblem shield
   const cx = size / 2;
   const cy = size / 2;
   const bg = ctx.createRadialGradient(cx, cy - 20, 14, cx, cy, 108);
@@ -71,14 +70,12 @@ function createEmblemTexture(
   ctx.strokeStyle = border;
   ctx.stroke();
 
-  // Inner subtle highlight ring
   ctx.beginPath();
   drawRoundedRect(ctx, 36, 36, size - 72, size - 72, 26);
   ctx.lineWidth = 2;
   ctx.strokeStyle = 'rgba(255, 245, 200, 0.5)';
   ctx.stroke();
 
-  // Crown / gem icon at top
   ctx.fillStyle = '#ffe27a';
   ctx.beginPath();
   ctx.moveTo(cx, 54);
@@ -88,7 +85,6 @@ function createEmblemTexture(
   ctx.closePath();
   ctx.fill();
 
-  // Main label
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = '900 44px Georgia, serif';
@@ -98,7 +94,6 @@ function createEmblemTexture(
   ctx.fillStyle = '#fff5cc';
   ctx.fillText(label, cx, 148);
 
-  // Sublabel
   ctx.font = '700 18px system-ui, sans-serif';
   ctx.fillStyle = '#ffd966';
   ctx.fillText(sublabel, cx, 188);
@@ -107,21 +102,51 @@ function createEmblemTexture(
   return Texture.from(canvas);
 }
 
-export async function loadGameTextures(): Promise<GameTextures> {
-  const entries = Object.entries(PNG_MAP) as [Exclude<SymbolId, 'WILD' | 'SCATTER'>, string][];
-  const urls = [...entries.map(([, url]) => url), './assets/symbols/symbol_overlay.png'];
-  const loaded = await Assets.load<Texture>(urls);
+async function waitForFonts(): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts?.ready) return;
+  try {
+    await Promise.race([
+      document.fonts.ready,
+      new Promise<void>((resolve) => setTimeout(resolve, 1200)),
+    ]);
+  } catch {
+    // Proceed even if FontFaceSet rejects
+  }
+}
 
+export async function loadGameTextures(onProgress?: (progress: number) => void): Promise<GameTextures> {
+  const entries = Object.entries(FRAME_MAP) as [Exclude<SymbolId, 'WILD' | 'SCATTER'>, string][];
   const symbols = {} as Record<SymbolId, Texture>;
-  for (const [id, url] of entries) {
-    symbols[id] = loaded[url];
+  let overlay: Texture | undefined;
+
+  await waitForFonts();
+
+  try {
+    const sheet = await Assets.load<Spritesheet>('./assets/symbols/symbols.json', (p) => {
+      onProgress?.(Math.min(1, Math.max(0, p)));
+    });
+    for (const [id, frameName] of entries) {
+      symbols[id] = sheet.textures[frameName];
+    }
+    overlay = sheet.textures['symbol_overlay.png'];
+  } catch {
+    // Graceful fallback to individual PNG files if atlas is unavailable
+    const urls = [...entries.map(([, f]) => `./assets/symbols/${f}`), './assets/symbols/symbol_overlay.png'];
+    const loaded = await Assets.load<Texture>(urls, (p) => {
+      onProgress?.(Math.min(1, Math.max(0, p)));
+    });
+    for (const [id, frameName] of entries) {
+      symbols[id] = loaded[`./assets/symbols/${frameName}`];
+    }
+    overlay = loaded['./assets/symbols/symbol_overlay.png'];
   }
 
+  onProgress?.(1);
   symbols.WILD = createEmblemTexture('WILD', 'SUBSTITUTES ALL', '#d90429', '#590d22');
   symbols.SCATTER = createEmblemTexture('BONUS', 'FREE SPINS', '#7b2cbf', '#240046');
 
   return {
     symbols,
-    overlay: loaded['./assets/symbols/symbol_overlay.png'],
+    overlay: overlay!,
   };
 }

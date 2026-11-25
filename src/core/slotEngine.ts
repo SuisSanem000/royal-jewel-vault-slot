@@ -69,6 +69,14 @@ export class SlotEngine {
     return this.bet;
   }
 
+  setBet(bet: number): boolean {
+    if (this._bonus.active) return false;
+    const idx = BET_STEPS.indexOf(bet as (typeof BET_STEPS)[number]);
+    if (idx === -1) return false;
+    this._betIndex = idx;
+    return true;
+  }
+
   refillCredits(amount = INITIAL_BALANCE): number {
     this._balance = roundCredits(this._balance + amount);
     return this._balance;

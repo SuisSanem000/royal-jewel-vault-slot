@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GameController, type PresentationAdapter } from '../../src/controller/GameController';
+import { LocalSlotBackend, RgsTransportError } from '../../src/core/backend';
 import { SeededRng } from '../../src/core/rng';
 import { SlotEngine } from '../../src/core/slotEngine';
 import { GameStateMachine } from '../../src/core/stateMachine';
@@ -108,6 +109,7 @@ describe('GameController end-to-end flow', () => {
     expect(view.hudLockedFlags[0]).toBe(false);
 
     const spinPromise = controller.handleSpin();
+    await Promise.resolve();
     // Mid-spin: controls must be locked and AUTO disabled
     expect(view.hudLockedFlags[1]).toBe(true);
     expect(view.autoEnabledFlags[1]).toBe(false);
@@ -183,6 +185,7 @@ describe('GameController end-to-end flow', () => {
     const controller = new GameController(engine, fsm, view, 10);
     controller.start();
     controller.handleToggleAuto();
+    await Promise.resolve();
     expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(true);
     expect(fsm.state).toBe('SPINNING');
 
@@ -197,5 +200,53 @@ describe('GameController end-to-end flow', () => {
     expect(engine.balance).toBe(1000);
     expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(false);
     expect(view.hudLockedFlags[view.hudLockedFlags.length - 1]).toBe(false);
+  });
+
+  it('enforces UKGC mode by locking AUTO/TURBO and honoring minSpinMs floor', async () => {
+    let clock = 0;
+    const engine = new SlotEngine(new SeededRng(99), 1000);
+    const fsm = new GameStateMachine('BOOT');
+    const view = createMockView();
+    const controller = new GameController(engine, fsm, view, {
+      delayMs: 0,
+      ukgcMode: true,
+      minSpinMs: 25,
+      nowFn: () => clock,
+    });
+
+    controller.start();
+    controller.handleToggleAuto();
+    controller.handleToggleTurbo();
+    expect(view.autoEnabledFlags[0]).toBe(false);
+    expect(view.setTurboActive).not.toHaveBeenCalled();
+
+    const start = Date.now();
+    await controller.handleSpin();
+    expect(Date.now() - start).toBeGreaterThanOrEqual(20);
+    expect(fsm.state).toBe('IDLE');
+  });
+
+  it('triggers Reality Check banner after elapsed session minutes and recovers from RGS disconnect', async () => {
+    let clock = 0;
+    const engine = new SlotEngine(new SeededRng(99), 1000);
+    const fsm = new GameStateMachine('BOOT');
+    const view = createMockView();
+    const backend = new LocalSlotBackend(engine);
+    const controller = new GameController(backend, fsm, view, {
+      delayMs: 0,
+      realityCheckMinutes: 15,
+      nowFn: () => clock,
+    });
+
+    controller.start();
+    clock = 15 * 60_000 + 100;
+    await controller.handleSpin();
+    expect(view.calls).toContain('banner:REALITY CHECK');
+
+    // Simulate RGS transport failure on next spin
+    vi.spyOn(backend, 'spin').mockRejectedValueOnce(new RgsTransportError('Network down', 'NETWORK', true));
+    await controller.handleSpin();
+    expect(view.calls).toContain('banner:CONNECTION LOST');
+    expect(fsm.state).toBe('IDLE');
   });
 });

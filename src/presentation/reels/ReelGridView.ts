@@ -71,6 +71,12 @@ export class ReelGridView extends Container {
     }
   }
 
+  setReducedMotion(enabled: boolean): void {
+    for (const col of this.columns) {
+      col.setReducedMotion(enabled);
+    }
+  }
+
   async spinTo(grid: Grid, turbo: boolean, onReelStop: (col: number) => void): Promise<void> {
     this.clearHighlights();
     for (const col of this.columns) {

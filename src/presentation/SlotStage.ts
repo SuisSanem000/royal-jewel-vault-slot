@@ -11,6 +11,11 @@ import {
 export const STAGE_WIDTH = LANDSCAPE_WIDTH;
 export const STAGE_HEIGHT = LANDSCAPE_HEIGHT;
 
+export interface LoadingIndicator {
+  updateProgress(progress: number): void;
+  destroy(): void;
+}
+
 export class SlotStage {
   readonly app = new Application();
   readonly root = new Container();
@@ -18,9 +23,12 @@ export class SlotStage {
   private readonly bgBonus = new Graphics();
   private readonly fxLayer = new Container();
   private readonly titleText: Text;
-  private loadingLabel: Text | null = null;
+  private loadingContainer: Container | null = null;
+  private contextLostOverlay: HTMLDivElement | null = null;
   private initialized = false;
+  private _reducedMotion = false;
   private layoutListeners: Array<(layout: StageLayout) => void> = [];
+  private reducedMotionListeners: Array<(reduced: boolean) => void> = [];
   private currentLayout: StageLayout = computeStageLayout(STAGE_WIDTH, STAGE_HEIGHT);
 
   constructor() {
@@ -47,11 +55,20 @@ export class SlotStage {
     return this.currentLayout;
   }
 
+  get reducedMotion(): boolean {
+    return this._reducedMotion;
+  }
+
   onLayoutChange(listener: (layout: StageLayout) => void): void {
     this.layoutListeners.push(listener);
     if (this.initialized) {
       listener(this.currentLayout);
     }
+  }
+
+  onReducedMotionChange(listener: (reduced: boolean) => void): void {
+    this.reducedMotionListeners.push(listener);
+    listener(this._reducedMotion);
   }
 
   private redrawBackdrop(layout: StageLayout): void {
@@ -81,8 +98,8 @@ export class SlotStage {
     }
     this.titleText.position.set(virtualWidth / 2, isPortrait ? 38 : 26);
 
-    if (this.loadingLabel && !this.loadingLabel.destroyed) {
-      this.loadingLabel.position.set(virtualWidth / 2, virtualHeight / 2);
+    if (this.loadingContainer && !this.loadingContainer.destroyed) {
+      this.loadingContainer.position.set(virtualWidth / 2, virtualHeight / 2);
     }
   }
 
@@ -99,6 +116,8 @@ export class SlotStage {
     this.root.addChild(this.fxLayer);
     this.initialized = true;
 
+    this.initReducedMotion();
+    this.initWebGlContextRecovery(mountEl);
     this.resize(true);
 
     const handleViewportChange = () => {
@@ -114,6 +133,62 @@ export class SlotStage {
     window.addEventListener('resize', handleViewportChange, { passive: true });
     window.visualViewport?.addEventListener('resize', handleViewportChange, { passive: true });
     window.screen?.orientation?.addEventListener?.('change', handleViewportChange);
+  }
+
+  private initReducedMotion(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = (matches: boolean) => {
+      this._reducedMotion = matches;
+      for (const listener of this.reducedMotionListeners) {
+        listener(matches);
+      }
+    };
+    update(mq.matches);
+    mq.addEventListener?.('change', (e) => update(e.matches));
+  }
+
+  private initWebGlContextRecovery(mountEl: HTMLElement): void {
+    const canvas = this.app.canvas;
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      this.setPaused(true);
+      this.showContextLostOverlay(mountEl, true);
+    });
+    canvas.addEventListener('webglcontextrestored', () => {
+      this.showContextLostOverlay(mountEl, false);
+      this.setPaused(false);
+      this.app.resize();
+      this.resize();
+    });
+  }
+
+  private showContextLostOverlay(mountEl: HTMLElement, visible: boolean): void {
+    if (!visible) {
+      if (this.contextLostOverlay) {
+        this.contextLostOverlay.style.display = 'none';
+      }
+      return;
+    }
+    if (!this.contextLostOverlay) {
+      const div = document.createElement('div');
+      div.style.cssText =
+        'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(12,3,8,0.88);color:#facc15;font:700 18px system-ui,sans-serif;text-align:center;padding:24px;';
+      div.textContent = 'Restoring graphics context...';
+      mountEl.appendChild(div);
+      this.contextLostOverlay = div;
+    }
+    this.contextLostOverlay.style.display = 'flex';
+  }
+
+  setPaused(paused: boolean): void {
+    if (!this.initialized) return;
+    gsap.globalTimeline.paused(paused);
+    if (paused) {
+      this.app.ticker.stop();
+    } else {
+      this.app.ticker.start();
+    }
   }
 
   resize(forceNotify = false): void {
@@ -135,23 +210,57 @@ export class SlotStage {
   }
 
   setBonusMood(active: boolean): void {
-    gsap.to(this.bgBonus, { alpha: active ? 1 : 0, duration: 0.5 });
+    gsap.to(this.bgBonus, { alpha: active ? 1 : 0, duration: this._reducedMotion ? 0.1 : 0.5 });
     this.titleText.text = active ? 'ROYAL FREE SPINS BONUS' : 'ROYAL JEWEL VAULT';
   }
 
-  showLoading(): Text {
+  showLoading(): LoadingIndicator {
+    const container = new Container();
+    container.position.set(this.currentLayout.virtualWidth / 2, this.currentLayout.virtualHeight / 2);
+
+    const barWidth = 340;
+    const barHeight = 16;
+
     const label = new Text({
-      text: 'LOADING ASSETS...',
-      style: { fill: 0xfde68a, fontSize: 22, fontWeight: '700', letterSpacing: 2 },
+      text: 'LOADING ASSETS... 0%',
+      style: { fill: 0xfde68a, fontSize: 20, fontWeight: '700', letterSpacing: 2 },
     });
     label.anchor.set(0.5);
-    label.position.set(this.currentLayout.virtualWidth / 2, this.currentLayout.virtualHeight / 2);
-    this.loadingLabel = label;
-    this.root.addChild(label);
-    return label;
+    label.position.set(0, -24);
+
+    const track = new Graphics()
+      .roundRect(-barWidth / 2, 0, barWidth, barHeight, 8)
+      .fill(0x2b0a18)
+      .stroke({ width: 2, color: 0xfacc15 });
+
+    const fill = new Graphics();
+    container.addChild(label, track, fill);
+    this.loadingContainer = container;
+    this.root.addChild(container);
+
+    const updateProgress = (progress: number) => {
+      const clamped = Math.min(1, Math.max(0, progress));
+      label.text = `LOADING ASSETS... ${Math.round(clamped * 100)}%`;
+      fill
+        .clear()
+        .roundRect(-barWidth / 2 + 2, 2, Math.max(0, (barWidth - 4) * clamped), barHeight - 4, 6)
+        .fill(0xfacc15);
+    };
+    updateProgress(0);
+
+    return {
+      updateProgress,
+      destroy: () => {
+        if (!container.destroyed) {
+          container.destroy({ children: true });
+        }
+        this.loadingContainer = null;
+      },
+    };
   }
 
   spawnWinSparkles(count = 24): void {
+    if (this._reducedMotion) return;
     const cx = this.currentLayout.virtualWidth / 2;
     const cy = this.currentLayout.isPortrait ? 360 : 320;
     for (let i = 0; i < count; i++) {

@@ -1,6 +1,7 @@
 import gsap from 'gsap';
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { PAYTABLE, SCATTER_FREE_SPINS, SCATTER_PAYOUTS } from '../../core/config';
+import { formatCredits, type FormatConfig } from '../../core/format';
 import type { BonusState, SymbolId } from '../../core/types';
 import type { GameTextures } from '../assets';
 
@@ -16,9 +17,11 @@ export class BonusHeaderBar extends Container {
   private readonly spinsText: Text;
   private readonly multText: Text;
   private readonly totalText: Text;
+  private readonly formatConfig: FormatConfig;
 
-  constructor() {
+  constructor(formatConfig: FormatConfig = { locale: 'en-US' }) {
     super();
+    this.formatConfig = formatConfig;
     this.visible = false;
 
     const bg = new Graphics()
@@ -55,7 +58,7 @@ export class BonusHeaderBar extends Container {
     this.visible = bonus.active;
     this.spinsText.text = `FREE SPINS: ${bonus.spinsRemaining}`;
     this.multText.text = `MULTIPLIER: ${bonus.multiplier}x`;
-    this.totalText.text = `BONUS WIN: ${bonus.totalBonusWin.toFixed(2)}`;
+    this.totalText.text = `BONUS WIN: ${formatCredits(bonus.totalBonusWin, this.formatConfig)}`;
     fitTextWidth(this.spinsText, 220);
     fitTextWidth(this.multText, 200);
     fitTextWidth(this.totalText, 240);
@@ -212,9 +215,16 @@ export class PaytableModal extends Container {
   private readonly lineTexts = new Map<Exclude<SymbolId, 'SCATTER'>, Text>();
   private readonly scatterText: Text;
   private readonly titleText: Text;
+  private readonly formatConfig: FormatConfig;
 
-  constructor(stageWidth: number, stageHeight: number, textures?: GameTextures) {
+  constructor(
+    stageWidth: number,
+    stageHeight: number,
+    textures?: GameTextures,
+    formatConfig: FormatConfig = { locale: 'en-US' },
+  ) {
     super();
+    this.formatConfig = formatConfig;
     this.visible = false;
 
     this.backdrop.eventMode = 'static';
@@ -330,10 +340,10 @@ export class PaytableModal extends Container {
   }
 
   updatePayouts(bet: number): void {
-    this.titleText.text = `ROYAL JEWEL VAULT — PAYTABLE (FOR BET ${bet.toFixed(2)})`;
+    const fmt = (n: number) => formatCredits(n, this.formatConfig);
+    this.titleText.text = `ROYAL JEWEL VAULT — PAYTABLE (FOR BET ${fmt(bet)})`;
     fitTextWidth(this.titleText, 816);
     const lineBet = bet / 10;
-    const fmt = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
 
     for (const sym of PAYTABLE_ORDER) {
       const p = PAYTABLE[sym];

@@ -25,6 +25,7 @@ export class ReelColumn extends Container {
   private spinning = false;
   private speed = 0;
   private scrollOffset = 0;
+  private reducedMotion = false;
   private stopResolve: (() => void) | null = null;
   private stopTimer: ReturnType<typeof setTimeout> | null = null;
   private targetSymbols: SymbolId[] = ['HIGH_RUBY', 'LOW_A', 'LOW_K'];
@@ -106,13 +107,20 @@ export class ReelColumn extends Container {
     this.sprites[ROW_COUNT].y = -this.cellSize / 2;
   }
 
+  setReducedMotion(enabled: boolean): void {
+    this.reducedMotion = enabled;
+    if (enabled) {
+      this.blurFilter.strengthY = 0;
+    }
+  }
+
   startSpin(): void {
     this.clearTimers();
     gsap.killTweensOf(this);
     this.y = 0;
     this.spinning = true;
     this.speed = 42;
-    this.blurFilter.strengthY = 7;
+    this.blurFilter.strengthY = this.reducedMotion ? 0 : 7;
   }
 
   /** Schedules stop after delayMs and resolves once bounce animation settles */
@@ -154,7 +162,15 @@ export class ReelColumn extends Container {
     this.setSymbols(this.targetSymbols);
     onLand?.();
 
-    // Subtle overshoot bounce for tactile mechanical feel
+    // Subtle overshoot bounce for tactile mechanical feel (disabled in reduced-motion mode)
+    if (this.reducedMotion) {
+      this.y = 0;
+      const res = this.stopResolve;
+      this.stopResolve = null;
+      res?.();
+      return;
+    }
+
     this.y = -18;
     gsap.killTweensOf(this);
     gsap.to(this, {
