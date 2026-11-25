@@ -21,7 +21,11 @@ export class ReelColumn extends Container {
   private readonly sprites: Sprite[] = [];
   private readonly symbolTextures: Record<SymbolId, Texture>;
   private readonly cellSize: number;
-  private readonly blurFilter = new BlurFilter({ strengthX: 0, strengthY: 0 });
+  private readonly blurFilter = new BlurFilter({
+    strengthX: 0,
+    strengthY: 0,
+    resolution: 'inherit',
+  });
 
   private spinning = false;
   private speed = 0;
@@ -40,7 +44,7 @@ export class ReelColumn extends Container {
     super();
     this.symbolTextures = symbolTextures;
     this.cellSize = cellSize;
-    this.filters = [this.blurFilter];
+    this.filters = [];
 
     // 4 sprites: index 0..2 visible rows, index 3 wrap buffer above top
     for (let i = 0; i < ROW_COUNT + 1; i++) {
@@ -113,6 +117,7 @@ export class ReelColumn extends Container {
     this.reducedMotion = enabled;
     if (enabled) {
       this.blurFilter.strengthY = 0;
+      this.filters = [];
     }
   }
 
@@ -123,7 +128,13 @@ export class ReelColumn extends Container {
     this.spinning = true;
     this.turboMode = turbo;
     this.speed = turbo ? 75 : 42;
-    this.blurFilter.strengthY = this.reducedMotion ? 0 : turbo ? 10 : 7;
+    if (this.reducedMotion) {
+      this.blurFilter.strengthY = 0;
+      this.filters = [];
+    } else {
+      this.blurFilter.strengthY = turbo ? 10 : 7;
+      this.filters = [this.blurFilter];
+    }
   }
 
   /** Schedules stop after delayMs and resolves once bounce animation settles */
@@ -151,6 +162,7 @@ export class ReelColumn extends Container {
     this.spinning = false;
     this.speed = 0;
     this.blurFilter.strengthY = 0;
+    this.filters = [];
     this.y = 0;
     this.setSymbols(symbols ?? this.targetSymbols);
     this.resetRowHighlights();
@@ -163,6 +175,7 @@ export class ReelColumn extends Container {
     this.spinning = false;
     this.speed = 0;
     this.blurFilter.strengthY = 0;
+    this.filters = [];
     this.setSymbols(this.targetSymbols);
     onLand?.();
 

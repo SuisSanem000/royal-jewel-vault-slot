@@ -1,4 +1,4 @@
-import { Assets, type Spritesheet, Texture } from 'pixi.js';
+import { Assets, type Spritesheet, Texture, TextureSource } from 'pixi.js';
 import type { SymbolId } from '../core/types';
 
 export interface GameTextures {
@@ -118,6 +118,9 @@ async function waitForFonts(): Promise<void> {
 }
 
 export async function loadGameTextures(onProgress?: (progress: number) => void): Promise<GameTextures> {
+  // Enable hardware GPU mipmaps so high-res 768x768 & 512x512 textures scale crisply on small mobile screens
+  TextureSource.defaultOptions.autoGenerateMipmaps = true;
+
   const entries = Object.entries(FRAME_MAP) as [Exclude<SymbolId, 'WILD' | 'SCATTER'>, string][];
   const symbols = {} as Record<SymbolId, Texture>;
   let overlay: Texture | undefined;
