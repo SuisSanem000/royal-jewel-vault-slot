@@ -45,7 +45,7 @@ npm run preview # Preview production build locally
   - `-` / `+` or `ArrowUp` / `ArrowDown`: Step bet (`10, 20, 50, 100, 200, 500` credits; locked during `AUTO` and `BONUS`).
   - `AUTO`, `TURBO` (`T`, starts OFF by default), `INFO` (`I`), `SFX ON` (`M`): Autoplay, fast stops, Paytable & Rules modal (`ESC` to close), Web Audio mute.
   - `FS`: Fullscreen toggle (shown only where `document.fullscreenEnabled` is supported).
-  - `DEMO BONUS`: Guarantees a 3-Scatter trigger for quick evaluation.
+  - `DEMO BONUS`: Guarantees a 3-Scatter trigger for quick evaluation (awards 8/10/12 Free Spins + any re-triggers until completion, or aborts anytime via `STOP ALL`).
   - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset everything (`1,000` balance, `10` bet, `TURBO`/`AUTO` OFF, unmuted, initial reels, and clears saved session).
   - `REFILL +1000`: Appears when idle and balance drops below the active bet.
 - **Operator / Compliance Launch Params (URL Query):**
@@ -123,6 +123,7 @@ royal-jewel-vault-slot/
   - *Async Cancellation:* Added `runId` tokens, `forceStop()`, and HUD-above-banner stacking so `STOP ALL` / `RESET` aborts active `AUTO` or `BONUS` flows cleanly from any state.
   - *Pacing & Bounds:* Tuned `TURBO` scroll speed, stagger, bounce, and win/auto waits (~5× faster); added `wordWrap` + width clamping across all modals and HUD counters.
   - *Physical Mobile Device QA:* Tested manually on mobile hardware and caught blurry symbols caused by a permanent `1×` offscreen `BlurFilter` pass on idle reels, `2×` DPR capping, and missing mipmaps; fixed by detaching `BlurFilter` when idle (`resolution: 'inherit'`), enabling `autoGenerateMipmaps = true`, upgrading to `768×768` Lanczos textures (`512×512` emblems), and supporting `3×` DPR.
+  - *Clean Credit & Animation Formatting:* Eliminated unnecessary `.00` / `.5` decimals in default credit play (`[10..500]` bet steps, `minimumFractionDigits: 0`) and rounded intermediate GSAP win count-up frames so integers never flash decimals (currency decimals retained under `?currency=...`).
 
 ---
 
@@ -141,6 +142,6 @@ A compact summary of how the project was planned, built, reviewed, and hardened:
 | 7 | **Paytable & Audio Audit** | <ul><li>Replaced text-only info view with visual symbol icons and bet-scaled payouts</li><li>Caught subtle logic/audio edge cases (missing `playClick` / `playSpin`, duplicate quick-stop SFX)</li></ul> |
 | 8 | **Mobile & Zoom Hardening** | <ul><li>Identified mobile portrait squeeze, notch/address-bar clipping, and desktop zoom DPR drift</li><li>Added dual-orientation `820×1060` portrait reflow, `100dvh`, `safe-area-inset-*`, and live DPR sync</li></ul> |
 | 9 | **Cancellation & Text Bounds** | <ul><li>Tested interrupting `AUTO` / `DEMO BONUS` and found unstoppable loops and banner text overflow</li><li>Implemented `runId` async cancellation, `STOP ALL` mode, `forceStop()`, and `wordWrap` clamping</li></ul> |
-| 10 | **Automated Tests & CI/CD** | <ul><li>Expanded Vitest suite to `31/31` tests (core math, formatting, RGS backend, storage, cancellation, UKGC/Reality Check, layout)</li><li>Configured GitHub Actions (`npm test` → `tsc --noEmit` → `vite build` → GitHub Pages)</li></ul> |
+| 10 | **Automated Tests & CI/CD** | <ul><li>Expanded Vitest suite across core math, formatting, RGS backend, timers, storage, cancellation, UKGC/Reality Check, and layout (`33/33` tests)</li><li>Configured GitHub Actions (`npm test` → `tsc --noEmit` → `vite build` → GitHub Pages)</li></ul> |
 | 11 | **Production Standards & QA** | <ul><li>Added WebP atlas, WebGL recovery, `visibilitychange` + timer freeze (`PausableTimerManager`), `prefers-reduced-motion`, `Intl.NumberFormat`, UKGC/Reality Check, Fullscreen, and `RgsSlotBackend`</li><li>Tuned `TURBO` speed/waits and audited full button enable/disable matrix across all states (`33/33` tests)</li></ul> |
-| 12 | **Mobile Device QA & Polish** | <ul><li>Verified manually on mobile device; caught soft reel rendering, `TURBO`/session persistence edge cases, and decimal `.5` payouts</li><li>Detached idle `1×` `BlurFilter` pass, enabled GPU mipmaps (`3×` DPR + `768×768` Lanczos atlas), standardized `[10..500]` integer awards, and added `localStorage` session persistence</li></ul> |
+| 12 | **Mobile Device QA & Polish** | <ul><li>Verified manually on mobile device; caught soft reel rendering, `TURBO`/session persistence edge cases, and decimal `.5` payouts</li><li>Detached idle `1×` `BlurFilter` pass, enabled GPU mipmaps (`3×` DPR + `768×768` Lanczos atlas), standardized `[10..500]` integer awards + win roll-up tween (no `.00`/`.5` clutter), and added `localStorage` session persistence</li></ul> |
