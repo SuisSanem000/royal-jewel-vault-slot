@@ -1,8 +1,15 @@
 import gsap from 'gsap';
 import { Application, Container, Graphics, Text } from 'pixi.js';
+import {
+  LANDSCAPE_HEIGHT,
+  LANDSCAPE_WIDTH,
+  clampDevicePixelRatio,
+  computeStageLayout,
+  type StageLayout,
+} from './layout';
 
-export const STAGE_WIDTH = 1280;
-export const STAGE_HEIGHT = 720;
+export const STAGE_WIDTH = LANDSCAPE_WIDTH;
+export const STAGE_HEIGHT = LANDSCAPE_HEIGHT;
 
 export class SlotStage {
   readonly app = new Application();
@@ -11,15 +18,12 @@ export class SlotStage {
   private readonly bgBonus = new Graphics();
   private readonly fxLayer = new Container();
   private readonly titleText: Text;
+  private loadingLabel: Text | null = null;
+  private initialized = false;
+  private layoutListeners: Array<(layout: StageLayout) => void> = [];
+  private currentLayout: StageLayout = computeStageLayout(STAGE_WIDTH, STAGE_HEIGHT);
 
   constructor() {
-    this.bgBase.rect(0, 0, STAGE_WIDTH, STAGE_HEIGHT).fill(0x16050e);
-    this.bgBase.circle(STAGE_WIDTH / 2, 310, 420).fill({ color: 0x58102a, alpha: 0.45 });
-
-    this.bgBonus.rect(0, 0, STAGE_WIDTH, STAGE_HEIGHT).fill(0x1c0629);
-    this.bgBonus.circle(STAGE_WIDTH / 2, 310, 450).fill({ color: 0x7e22ce, alpha: 0.42 });
-    this.bgBonus.alpha = 0;
-
     this.titleText = new Text({
       text: 'ROYAL JEWEL VAULT',
       style: {
@@ -31,9 +35,47 @@ export class SlotStage {
       },
     });
     this.titleText.anchor.set(0.5);
-    this.titleText.position.set(STAGE_WIDTH / 2, 26);
 
     this.root.addChild(this.bgBase, this.bgBonus, this.titleText);
+    this.redrawBackdrop(this.currentLayout);
+  }
+
+  get layout(): StageLayout {
+    return this.currentLayout;
+  }
+
+  onLayoutChange(listener: (layout: StageLayout) => void): void {
+    this.layoutListeners.push(listener);
+    if (this.initialized) {
+      listener(this.currentLayout);
+    }
+  }
+
+  private redrawBackdrop(layout: StageLayout): void {
+    const { virtualWidth, virtualHeight, isPortrait } = layout;
+    const glowCenterY = isPortrait ? 360 : 310;
+    const glowRadius = isPortrait ? 390 : 420;
+
+    this.bgBase
+      .clear()
+      .rect(0, 0, virtualWidth, virtualHeight)
+      .fill(0x16050e)
+      .circle(virtualWidth / 2, glowCenterY, glowRadius)
+      .fill({ color: 0x58102a, alpha: 0.45 });
+
+    this.bgBonus
+      .clear()
+      .rect(0, 0, virtualWidth, virtualHeight)
+      .fill(0x1c0629)
+      .circle(virtualWidth / 2, glowCenterY, glowRadius + 30)
+      .fill({ color: 0x7e22ce, alpha: 0.42 });
+
+    this.titleText.style.fontSize = isPortrait ? 30 : 28;
+    this.titleText.position.set(virtualWidth / 2, isPortrait ? 38 : 26);
+
+    if (this.loadingLabel && !this.loadingLabel.destroyed) {
+      this.loadingLabel.position.set(virtualWidth / 2, virtualHeight / 2);
+    }
   }
 
   async init(mountEl: HTMLElement): Promise<void> {
@@ -41,23 +83,47 @@ export class SlotStage {
       resizeTo: mountEl,
       backgroundAlpha: 0,
       antialias: true,
-      resolution: window.devicePixelRatio || 1,
+      resolution: clampDevicePixelRatio(window.devicePixelRatio),
       autoDensity: true,
     });
     mountEl.appendChild(this.app.canvas);
     this.app.stage.addChild(this.root);
     this.root.addChild(this.fxLayer);
+    this.initialized = true;
 
-    this.resize();
+    this.resize(true);
+
+    const handleViewportChange = () => {
+      const nextResolution = clampDevicePixelRatio(window.devicePixelRatio);
+      if (this.app.renderer.resolution !== nextResolution) {
+        this.app.renderer.resolution = nextResolution;
+      }
+      this.app.resize();
+      this.resize();
+    };
+
     this.app.renderer.on('resize', () => this.resize());
+    window.addEventListener('resize', handleViewportChange, { passive: true });
+    window.visualViewport?.addEventListener('resize', handleViewportChange, { passive: true });
+    window.screen?.orientation?.addEventListener?.('change', handleViewportChange);
   }
 
-  resize(): void {
-    const w = this.app.screen.width;
-    const h = this.app.screen.height;
-    const scale = Math.min(w / STAGE_WIDTH, h / STAGE_HEIGHT);
-    this.root.scale.set(scale);
-    this.root.position.set((w - STAGE_WIDTH * scale) / 2, (h - STAGE_HEIGHT * scale) / 2);
+  resize(forceNotify = false): void {
+    const prevOrientation = this.currentLayout.isPortrait;
+    const prevW = this.currentLayout.virtualWidth;
+    const prevH = this.currentLayout.virtualHeight;
+
+    const next = computeStageLayout(this.app.screen.width, this.app.screen.height);
+    this.currentLayout = next;
+    this.root.scale.set(next.scale);
+    this.root.position.set(next.offsetX, next.offsetY);
+
+    if (forceNotify || next.isPortrait !== prevOrientation || next.virtualWidth !== prevW || next.virtualHeight !== prevH) {
+      this.redrawBackdrop(next);
+      for (const listener of this.layoutListeners) {
+        listener(next);
+      }
+    }
   }
 
   setBonusMood(active: boolean): void {
@@ -71,15 +137,18 @@ export class SlotStage {
       style: { fill: 0xfde68a, fontSize: 22, fontWeight: '700', letterSpacing: 2 },
     });
     label.anchor.set(0.5);
-    label.position.set(STAGE_WIDTH / 2, STAGE_HEIGHT / 2);
+    label.position.set(this.currentLayout.virtualWidth / 2, this.currentLayout.virtualHeight / 2);
+    this.loadingLabel = label;
     this.root.addChild(label);
     return label;
   }
 
   spawnWinSparkles(count = 24): void {
+    const cx = this.currentLayout.virtualWidth / 2;
+    const cy = this.currentLayout.isPortrait ? 360 : 320;
     for (let i = 0; i < count; i++) {
       const dot = new Graphics().circle(0, 0, 4 + Math.random() * 4).fill(i % 2 === 0 ? 0xfacc15 : 0xff4d6d);
-      dot.position.set(STAGE_WIDTH / 2 + (Math.random() - 0.5) * 420, 320 + (Math.random() - 0.5) * 140);
+      dot.position.set(cx + (Math.random() - 0.5) * 420, cy + (Math.random() - 0.5) * 140);
       this.fxLayer.addChild(dot);
 
       gsap.to(dot, {

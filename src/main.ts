@@ -32,11 +32,7 @@ async function bootstrap(): Promise<void> {
   const fsm = new GameStateMachine('BOOT');
 
   const reels = new ReelGridView(textures, initialDisplayGrid());
-  reels.position.set((STAGE_WIDTH - reels.gridWidth) / 2, 120);
-
   const bonusBar = new BonusHeaderBar();
-  bonusBar.position.set((STAGE_WIDTH - 780) / 2, 48);
-
   const banner = new ModalBanner(STAGE_WIDTH, STAGE_HEIGHT);
   const paytable = new PaytableModal(STAGE_WIDTH, STAGE_HEIGHT, textures);
 
@@ -75,9 +71,19 @@ async function bootstrap(): Promise<void> {
     onRefill: () => controller.handleRefill(),
     onReset: () => controller.handleReset(),
   });
-  hud.position.set((STAGE_WIDTH - 1180) / 2, STAGE_HEIGHT - 112);
-
   stage.root.addChild(reels, bonusBar, hud, banner, paytable);
+
+  stage.onLayoutChange((layout) => {
+    reels.position.set((layout.virtualWidth - reels.gridWidth) / 2, layout.isPortrait ? 150 : 120);
+    bonusBar.position.set((layout.virtualWidth - 780) / 2, layout.isPortrait ? 72 : 48);
+    hud.setLayout(layout.isPortrait);
+    hud.position.set(
+      layout.isPortrait ? (layout.virtualWidth - 780) / 2 : (layout.virtualWidth - 1180) / 2,
+      layout.isPortrait ? 662 : layout.virtualHeight - 112,
+    );
+    banner.setViewport(layout.virtualWidth, layout.virtualHeight);
+    paytable.setViewport(layout.virtualWidth, layout.virtualHeight);
+  });
 
   stage.app.ticker.add((ticker) => {
     reels.update(ticker.deltaMS / 1000);

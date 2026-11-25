@@ -49,6 +49,7 @@ export class BonusHeaderBar extends Container {
 }
 
 export class ModalBanner extends Container {
+  private readonly backdrop = new Graphics();
   private readonly titleText: Text;
   private readonly subtitleText: Text;
   private readonly card = new Container();
@@ -57,11 +58,8 @@ export class ModalBanner extends Container {
     super();
     this.visible = false;
 
-    const backdrop = new Graphics()
-      .rect(0, 0, stageWidth, stageHeight)
-      .fill({ color: 0x090208, alpha: 0.65 });
-    backdrop.eventMode = 'static';
-    this.addChild(backdrop);
+    this.backdrop.eventMode = 'static';
+    this.addChild(this.backdrop);
 
     const box = new Graphics()
       .roundRect(-290, -110, 580, 220, 24)
@@ -82,9 +80,17 @@ export class ModalBanner extends Container {
     this.subtitleText.anchor.set(0.5);
     this.subtitleText.position.set(0, 36);
 
-    this.card.position.set(stageWidth / 2, stageHeight / 2);
     this.card.addChild(box, this.titleText, this.subtitleText);
     this.addChild(this.card);
+    this.setViewport(stageWidth, stageHeight);
+  }
+
+  setViewport(stageWidth: number, stageHeight: number): void {
+    this.backdrop
+      .clear()
+      .rect(0, 0, stageWidth, stageHeight)
+      .fill({ color: 0x090208, alpha: 0.65 });
+    this.card.position.set(stageWidth / 2, stageHeight / 2);
   }
 
   async show(title: string, subtitle: string, durationMs = 1700): Promise<void> {
@@ -127,6 +133,8 @@ const PAYTABLE_ORDER: Exclude<SymbolId, 'SCATTER'>[] = [
 ];
 
 export class PaytableModal extends Container {
+  private readonly backdrop = new Graphics();
+  private readonly content = new Container();
   private readonly lineTexts = new Map<Exclude<SymbolId, 'SCATTER'>, Text>();
   private readonly scatterText: Text;
   private readonly titleText: Text;
@@ -135,16 +143,13 @@ export class PaytableModal extends Container {
     super();
     this.visible = false;
 
-    const backdrop = new Graphics()
-      .rect(0, 0, stageWidth, stageHeight)
-      .fill({ color: 0x090208, alpha: 0.8 });
-    backdrop.eventMode = 'static';
-    backdrop.on('pointertap', () => {
+    this.backdrop.eventMode = 'static';
+    this.backdrop.on('pointertap', () => {
       this.visible = false;
     });
 
-    const left = stageWidth / 2 - 420;
-    const top = stageHeight / 2 - 260;
+    const left = -420;
+    const top = -260;
     const panel = new Graphics()
       .roundRect(left, top, 840, 520, 20)
       .fill({ color: 0x1f0814, alpha: 0.98 })
@@ -160,7 +165,8 @@ export class PaytableModal extends Container {
     });
     this.titleText.position.set(left + 32, top + 24);
 
-    this.addChild(backdrop, panel, this.titleText);
+    this.addChild(this.backdrop, this.content);
+    this.content.addChild(panel, this.titleText);
 
     PAYTABLE_ORDER.forEach((sym, i) => {
       const col = i < 5 ? 0 : 1;
@@ -174,7 +180,7 @@ export class PaytableModal extends Container {
         const s = 44 / Math.max(icon.texture.width || 1, icon.texture.height || 1);
         icon.scale.set(s);
         icon.position.set(x + 22, y + 22);
-        this.addChild(icon);
+        this.content.addChild(icon);
       }
 
       const line = new Text({
@@ -183,7 +189,7 @@ export class PaytableModal extends Container {
       });
       line.position.set(x + 56, y + 12);
       this.lineTexts.set(sym, line);
-      this.addChild(line);
+      this.content.addChild(line);
     });
 
     if (textures) {
@@ -192,21 +198,21 @@ export class PaytableModal extends Container {
       const s = 44 / Math.max(scatterIcon.texture.width || 1, scatterIcon.texture.height || 1);
       scatterIcon.scale.set(s);
       scatterIcon.position.set(left + 32 + 405 + 22, top + 74 + 4 * 56 + 22);
-      this.addChild(scatterIcon);
+      this.content.addChild(scatterIcon);
     }
     this.scatterText = new Text({
       text: '',
       style: { fill: 0xfde68a, fontSize: 14, fontWeight: '700', fontFamily: 'system-ui, sans-serif' },
     });
     this.scatterText.position.set(left + 32 + 405 + 56, top + 74 + 4 * 56 + 13);
-    this.addChild(this.scatterText);
+    this.content.addChild(this.scatterText);
 
     const rules = new Text({
       text: [
         '• 5 Reels × 3 Rows | 20 Fixed Paylines (Left to Right, starting from leftmost reel)',
         '• WILD substitutes for all regular symbols (highest win paid per line)',
         '• Free Spins Bonus: Each winning spin steps multiplier up 1x → 2x → 3x → 5x (re-triggers add spins)',
-        '• Controls: SPIN or SPACE (press again to Quick Stop)  |  Click anywhere or press ESC / SPACE to close',
+        '• Controls: SPIN or SPACE (press again to Quick Stop)  |  Click/Tap anywhere or press ESC to close',
       ].join('\n'),
       style: {
         fill: 0xe5e7eb,
@@ -216,9 +222,20 @@ export class PaytableModal extends Container {
       },
     });
     rules.position.set(left + 32, top + 382);
-    this.addChild(rules);
+    this.content.addChild(rules);
 
     this.updatePayouts(5);
+    this.setViewport(stageWidth, stageHeight);
+  }
+
+  setViewport(stageWidth: number, stageHeight: number): void {
+    this.backdrop
+      .clear()
+      .rect(0, 0, stageWidth, stageHeight)
+      .fill({ color: 0x090208, alpha: 0.8 });
+    this.content.position.set(stageWidth / 2, stageHeight / 2);
+    const fitScale = Math.min(1, (stageWidth - 40) / 840, (stageHeight - 40) / 520);
+    this.content.scale.set(fitScale);
   }
 
   updatePayouts(bet: number): void {

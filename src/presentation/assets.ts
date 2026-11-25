@@ -17,6 +17,27 @@ const PNG_MAP: Record<Exclude<SymbolId, 'WILD' | 'SCATTER'>, string> = {
   LOW_J: './assets/symbols/low_j.png',
 };
 
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, r);
+    return;
+  }
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
 function createEmblemTexture(
   label: string,
   sublabel: string,
@@ -38,7 +59,7 @@ function createEmblemTexture(
 
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(22, 22, size - 44, size - 44, 38);
+  drawRoundedRect(ctx, 22, 22, size - 44, size - 44, 38);
   ctx.fillStyle = bg;
   ctx.fill();
 
@@ -52,7 +73,7 @@ function createEmblemTexture(
 
   // Inner subtle highlight ring
   ctx.beginPath();
-  ctx.roundRect(36, 36, size - 72, size - 72, 26);
+  drawRoundedRect(ctx, 36, 36, size - 72, size - 72, 26);
   ctx.lineWidth = 2;
   ctx.strokeStyle = 'rgba(255, 245, 200, 0.5)';
   ctx.stroke();

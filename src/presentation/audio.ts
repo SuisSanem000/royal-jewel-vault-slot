@@ -2,6 +2,19 @@ export class SoundManager {
   private ctx: AudioContext | null = null;
   private _muted = false;
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      const unlock = () => {
+        if (!this._muted) {
+          this.ensureContext();
+        }
+      };
+      window.addEventListener('pointerdown', unlock, { passive: true, once: true });
+      window.addEventListener('touchstart', unlock, { passive: true, once: true });
+      window.addEventListener('keydown', unlock, { passive: true, once: true });
+    }
+  }
+
   get muted(): boolean {
     return this._muted;
   }
@@ -18,7 +31,8 @@ export class SoundManager {
       if (!AudioCtx) return null;
       this.ctx = new AudioCtx();
     }
-    if (this.ctx.state === 'suspended') {
+    const state = this.ctx.state as string;
+    if (state === 'suspended' || state === 'interrupted') {
       void this.ctx.resume();
     }
     return this.ctx;

@@ -60,16 +60,31 @@ royal-jewel-vault-slot/
 │   ├── presentation/          # PixiJS v8 rendering, GSAP timelines & Web Audio SFX
 │   │   ├── assets.ts          # PixiJS Assets preloader + procedural WILD/SCATTER emblem textures
 │   │   ├── audio.ts           # Zero-dependency Web Audio API sound synthesizer
-│   │   ├── SlotStage.ts       # Responsive 1280×720 virtual stage, loading state & sparkle particles
+│   │   ├── layout.ts          # Pure dual-orientation virtual stage & DPR math (1280×720 / 820×1060)
+│   │   ├── SlotStage.ts       # Responsive PixiJS stage, zoom/DPR sync, loading state & sparkle FX
 │   │   ├── reels/             # Masked 4-sprite ReelColumn + staggered 5×3 ReelGridView
-│   │   └── ui/                # HudView + BonusHeaderBar, ModalBanner, visual PaytableModal
+│   │   └── ui/                # Adaptive HudView + BonusHeaderBar, ModalBanner, visual PaytableModal
 │   ├── controller/
 │   │   └── GameController.ts  # Mediates HUD input, FSM, SlotEngine, and PresentationAdapter
-│   └── main.ts                # Application bootstrap & keyboard shortcuts
+│   └── main.ts                # Application bootstrap, layout wiring & keyboard shortcuts
 └── tests/
     ├── core/                  # Unit tests for evaluator, stateMachine, slotEngine
+    ├── presentation/          # Pure responsive layout & DPR clamping unit tests
     └── controller/            # End-to-end base + bonus flow tests via mock PresentationAdapter
 ```
+
+---
+
+## Responsiveness, Mobile & Cross-Browser Engineering
+
+Built for desktop widescreens, laptops, tablets, and portrait/landscape phones across Chrome, Safari (macOS/iOS), Firefox, and Edge:
+
+- **Dual-Orientation Adaptive Virtual Stage ([`layout.ts`](./src/presentation/layout.ts), [`SlotStage.ts`](./src/presentation/SlotStage.ts)):** Automatically switches between a `1280×720` widescreen stage (desktop & mobile landscape) and an `820×1060` portrait stage (`h > w × 1.05`) so reels fill mobile screen width cleanly without vertical letterboxing.
+- **Thumb-Ergonomic Portrait HUD & Modal Reflow ([`HudView.ts`](./src/presentation/ui/HudView.ts), [`Overlays.ts`](./src/presentation/ui/Overlays.ts)):** In portrait mode, `HudView` reflows into a 3-row mobile card (`780×352`) with centered stats, `56×56` `-`/`+` bet steppers, a `360×96` primary `SPIN` button in the thumb zone, and full-width secondary/utility buttons. `PaytableModal` and `ModalBanner` dynamically re-center and scale-to-fit within the active viewport so overlays never clip on narrow screens.
+- **Mobile Dynamic Viewport & Notch Safe Areas ([`index.html`](./index.html)):** Uses `100dvh` (with `100%` fallback) so collapsible mobile browser address bars never clip the canvas, plus `viewport-fit=cover` and `env(safe-area-inset-*)` padding on `body` so `#app` and the PixiJS `resizeTo` container respect iPhone notches and home-indicator bars seamlessly.
+- **Browser Zoom (`Cmd/Ctrl +/-`), Multi-Monitor DPR & GPU Cap ([`SlotStage.ts`](./src/presentation/SlotStage.ts), [`layout.ts`](./src/presentation/layout.ts)):** Clamps `devicePixelRatio` via `clampDevicePixelRatio` (`[1, 2]`) to preserve Retina sharpness without `3×`/`4×` mobile fragment-shader fill-rate penalties, and subscribes to `window.resize`, `window.visualViewport`, `screen.orientation`, and Pixi renderer `resize` events so browser zooming or dragging across displays updates `renderer.resolution` live.
+- **Touch Ergonomics ([`index.html`](./index.html)):** Applies `overscroll-behavior: none`, `touch-action: manipulation` / `none`, `-webkit-tap-highlight-color: transparent`, and `-webkit-text-size-adjust: 100%` to prevent accidental pull-to-refresh, double-tap zoom delays, and tap flash artifacts while preserving desktop accessibility zoom.
+- **Cross-Browser Canvas & iOS Safari Web Audio Hardening ([`assets.ts`](./src/presentation/assets.ts), [`audio.ts`](./src/presentation/audio.ts)):** Includes a `CanvasRenderingContext2D.roundRect` fallback via `arcTo` for older WebViews, `webkitAudioContext` fallback, eager first-gesture unlock listeners (`pointerdown` / `touchstart` / `keydown`), and iOS Safari `'interrupted'` state recovery alongside `'suspended'`.
 
 ---
 
@@ -88,4 +103,4 @@ royal-jewel-vault-slot/
 6. **Zero-Dependency Procedural Web Audio:**
    Button clicks, spin whooshes, pitched per-reel stop thuds, win arpeggios, and bonus fanfares are synthesized via the Web Audio API, eliminating external audio file loading or licensing overhead.
 7. **Deterministic Testing & Automated CI/CD:**
-   A Mulberry32 `SeededRng` makes payline, Wild/Scatter, and Free Spins tests 100% reproducible (`10/10` Vitest tests passing). Every push to `main` automatically runs `npm test` and `npm run build` via GitHub Actions before deploying to GitHub Pages.
+   A Mulberry32 `SeededRng` makes payline, Wild/Scatter, and Free Spins tests 100% reproducible (`18/18` Vitest tests passing across core math, state machine, controller flows, and responsive layout math). Every push to `main` automatically runs `npm test` and `npm run build` via GitHub Actions before deploying to GitHub Pages.
