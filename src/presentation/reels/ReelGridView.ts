@@ -80,11 +80,11 @@ export class ReelGridView extends Container {
   async spinTo(grid: Grid, turbo: boolean, onReelStop: (col: number) => void): Promise<void> {
     this.clearHighlights();
     for (const col of this.columns) {
-      col.startSpin();
+      col.startSpin(turbo);
     }
 
-    const baseDelay = turbo ? 220 : 520;
-    const stagger = turbo ? 90 : 210;
+    const baseDelay = turbo ? 80 : 520;
+    const stagger = turbo ? 35 : 210;
     let scattersInResult = 0;
     let scattersLanded = 0;
     let extraAnticipation = 0;

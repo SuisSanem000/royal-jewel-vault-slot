@@ -20,7 +20,13 @@ export interface PresentationAdapter {
   setBonusMood(active: boolean): void;
   spinReels(grid: Grid, turbo: boolean): Promise<void>;
   quickStopReels(): void;
-  showWins(lineWins: LineWin[], scatterWin: ScatterWin | null, totalWin: number, bet: number): Promise<void>;
+  showWins(
+    lineWins: LineWin[],
+    scatterWin: ScatterWin | null,
+    totalWin: number,
+    bet: number,
+    turbo?: boolean,
+  ): Promise<void>;
   clearWins(): void;
   showBanner(title: string, subtitle: string, durationMs?: number): Promise<void>;
   abortPresentation(): void;
@@ -242,7 +248,7 @@ export class GameController {
       if (token === this.runId && this.autoSpin && this.fsm.state === 'IDLE') {
         void this.handleSpin();
       }
-    }, this.delayMs);
+    }, this.turbo ? Math.min(120, this.delayMs) : this.delayMs);
   }
 
   private clearAutoTimer(): void {
@@ -365,7 +371,13 @@ export class GameController {
         this.stopAllActive || result.triggeredBonus,
         this.autoSpin && !result.triggeredBonus && !this.ukgcMode,
       );
-      await this.view.showWins(result.lineWins, result.scatterWin, result.totalWin, result.bet);
+      await this.view.showWins(
+        result.lineWins,
+        result.scatterWin,
+        result.totalWin,
+        result.bet,
+        useTurbo,
+      );
       if (token !== this.runId) return;
     } else {
       this.view.updateHud(
@@ -399,7 +411,7 @@ export class GameController {
         this.fsm.transition('BONUS_ACTIVE');
         this.lastWin = result.totalWin;
         this.syncHud(result.totalWin);
-        await this.pause(this.delayMs);
+        await this.pause(useTurbo ? Math.min(120, this.delayMs) : this.delayMs);
         if (token !== this.runId) return;
         await this.executeSpin({ token });
       }

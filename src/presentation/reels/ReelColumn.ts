@@ -26,6 +26,7 @@ export class ReelColumn extends Container {
   private speed = 0;
   private scrollOffset = 0;
   private reducedMotion = false;
+  private turboMode = false;
   private stopResolve: (() => void) | null = null;
   private stopTimer: ReturnType<typeof setTimeout> | null = null;
   private targetSymbols: SymbolId[] = ['HIGH_RUBY', 'LOW_A', 'LOW_K'];
@@ -114,13 +115,14 @@ export class ReelColumn extends Container {
     }
   }
 
-  startSpin(): void {
+  startSpin(turbo = false): void {
     this.clearTimers();
     gsap.killTweensOf(this);
     this.y = 0;
     this.spinning = true;
-    this.speed = 42;
-    this.blurFilter.strengthY = this.reducedMotion ? 0 : 7;
+    this.turboMode = turbo;
+    this.speed = turbo ? 75 : 42;
+    this.blurFilter.strengthY = this.reducedMotion ? 0 : turbo ? 10 : 7;
   }
 
   /** Schedules stop after delayMs and resolves once bounce animation settles */
@@ -171,11 +173,11 @@ export class ReelColumn extends Container {
       return;
     }
 
-    this.y = -18;
+    this.y = this.turboMode ? -10 : -18;
     gsap.killTweensOf(this);
     gsap.to(this, {
       y: 0,
-      duration: 0.24,
+      duration: this.turboMode ? 0.1 : 0.24,
       ease: 'back.out(2.2)',
       onComplete: () => {
         const res = this.stopResolve;

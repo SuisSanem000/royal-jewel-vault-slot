@@ -190,13 +190,13 @@ async function bootstrap(): Promise<void> {
     setBonusMood: (active) => stage.setBonusMood(active),
     spinReels: (grid, turbo) => reels.spinTo(grid, turbo, (col) => sound.playReelStop(col)),
     quickStopReels: () => reels.quickStop((col) => sound.playReelStop(col)),
-    async showWins(lineWins, scatterWin, totalWin, bet) {
+    async showWins(lineWins, scatterWin, totalWin, bet, turbo) {
       reels.showWins(lineWins, scatterWin);
       sound.playWin();
       stage.spawnWinSparkles(totalWin >= bet * 10 ? 40 : 20);
       if (totalWin >= bet * 10) {
         const tier = totalWin >= bet * 25 ? 'MEGA WIN!' : 'BIG WIN!';
-        await banner.show(tier, `+${formatCredits(totalWin, launch.format)}`, 1400);
+        await banner.show(tier, `+${formatCredits(totalWin, launch.format)}`, turbo ? 750 : 1400);
       } else {
         clearWinWait();
         await new Promise<void>((resolve) => {
@@ -205,7 +205,7 @@ async function bootstrap(): Promise<void> {
             winWaitTimer = null;
             winWaitResolve = null;
             resolve();
-          }, 900);
+          }, turbo ? 350 : 900);
         });
       }
     },
