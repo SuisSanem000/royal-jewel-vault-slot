@@ -80,11 +80,11 @@ royal-jewel-vault-slot/
 
 ## Technical Highlights
 
-- **Decoupled Core & RGS-Ready Adapter:** `src/core/` has zero PixiJS/DOM imports; `GameController` talks to `PresentationAdapter`, making local RNG → Remote Game Server (RGS) migration straightforward.
+- **Decoupled Core & RGS Transport ([`backend.ts`](./src/core/backend.ts)):** `src/core/` has zero PixiJS/DOM imports; `GameController` talks to `GameBackend` (`LocalSlotBackend` or `RgsSlotBackend` with `Idempotency-Key`, retries, and disconnect recovery) and `PresentationAdapter`.
 - **Spoiler-Free Presentation:** Outcomes resolve upfront in `SlotEngine.spin()`, while `WIN`, `BonusState`, and 2-Scatter anticipation glows reveal only as reels land.
 - **PixiJS v8 + GSAP Pipeline:** 4-sprite recycled `ReelColumn` inside a `Graphics` mask, `Ticker`-driven scroll with `BlurFilter`, GSAP `back.out(2.2)` bounce, pulsing `symbol_overlay.png` frames, and clean `forceStop` / `killTweensOf` teardown.
 - **Guarded FSM & Cancellation:** `ALLOWED_TRANSITIONS` prevents invalid states; `runId` cancellation tokens + `forceStop()` guarantee `STOP ALL` / `RESET` never leaves dangling timers or half-finished bonus flows.
-- **Separated Asset Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):** Normalizes raw designer filenames and downscales `1254×1254` PNGs (`~9.7 MB`) to `512×512` (`~2.2 MB`, ~77% lighter), isolated for easy expansion into spritesheet packing and WebP conversion.
+- **Asset Normalization & WebP Atlas Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):** Maps raw designer filenames, resizes `1254×1254` PNGs (`~9.7 MB`) to `512×512`, and packs them into a single `426.8 KB` WebP spritesheet (`symbols.webp` + validated `symbols.json`, >95% lighter).
 - **Zero-Dependency Web Audio:** Synthesizes UI clicks, spin whooshes, pitched reel stops, win arpeggios, and bonus fanfares with no external audio files.
 
 ---
