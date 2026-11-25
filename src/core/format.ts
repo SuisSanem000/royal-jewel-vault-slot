@@ -65,10 +65,10 @@ export function formatCredits(amount: number, config: FormatConfig = DEFAULT_FOR
       }).format(safe);
     }
     return new Intl.NumberFormat(config.locale, {
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(safe);
   } catch {
-    return safe.toFixed(2);
+    return String(safe);
   }
 }

@@ -45,7 +45,7 @@ export class BonusHeaderBar extends Container {
     this.multText.position.set(390, 22);
 
     this.totalText = new Text({
-      text: 'BONUS WIN: 0.00',
+      text: 'BONUS WIN: 0',
       style: { fill: 0x86efac, fontSize: 17, fontWeight: '800' },
     });
     this.totalText.anchor.set(1, 0.5);
@@ -244,7 +244,7 @@ export class PaytableModal extends Container {
     });
 
     this.titleText = new Text({
-      text: 'ROYAL JEWEL VAULT — PAYTABLE (FOR BET 5.00)',
+      text: 'ROYAL JEWEL VAULT — PAYTABLE (FOR BET 5)',
       style: {
         fill: 0xfacc15,
         fontSize: 22,
