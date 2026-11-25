@@ -4,16 +4,21 @@ import { SeededRng } from '../../src/core/rng';
 import { SlotEngine } from '../../src/core/slotEngine';
 import { GameStateMachine } from '../../src/core/stateMachine';
 
-function createMockView(): PresentationAdapter & { calls: string[] } {
+function createMockView(): PresentationAdapter & { calls: string[]; hudBonuses: boolean[] } {
   const calls: string[] = [];
+  const hudBonuses: boolean[] = [];
   return {
     calls,
-    updateHud: vi.fn(),
+    hudBonuses,
+    updateHud: vi.fn((_bal, _bet, _win, bonus) => {
+      hudBonuses.push(bonus.active);
+    }),
     setSpinButton: vi.fn(),
     setAutoActive: vi.fn(),
+    setTurboActive: vi.fn(),
     setBonusMood: vi.fn((active) => calls.push(`mood:${active}`)),
-    spinReels: vi.fn(async () => {
-      calls.push('spinReels');
+    spinReels: vi.fn(async (_grid, turbo) => {
+      calls.push(`spinReels:${turbo}`);
     }),
     quickStopReels: vi.fn(() => calls.push('quickStop')),
     showWins: vi.fn(async () => {
@@ -30,7 +35,7 @@ function createMockView(): PresentationAdapter & { calls: string[] } {
 }
 
 describe('GameController end-to-end flow', () => {
-  it('completes a base spin and returns cleanly to IDLE', async () => {
+  it('completes a base spin and respects turbo toggle', async () => {
     const engine = new SlotEngine(new SeededRng(99), 1000);
     const fsm = new GameStateMachine('BOOT');
     const view = createMockView();
@@ -39,12 +44,15 @@ describe('GameController end-to-end flow', () => {
     controller.start();
     expect(fsm.state).toBe('IDLE');
 
+    controller.handleToggleTurbo();
+    expect(view.setTurboActive).toHaveBeenCalledWith(true);
+
     await controller.handleSpin();
     expect(fsm.state).toBe('IDLE');
-    expect(view.spinReels).toHaveBeenCalledTimes(1);
+    expect(view.calls).toContain('spinReels:true');
   });
 
-  it('triggers Royal Free Spins bonus, plays all free spins, and returns to base game IDLE', async () => {
+  it('triggers Royal Free Spins without spoiling bonus HUD before reels land, and returns to IDLE', async () => {
     const engine = new SlotEngine(new SeededRng(7), 1000);
     const fsm = new GameStateMachine('BOOT');
     const view = createMockView();
@@ -53,6 +61,8 @@ describe('GameController end-to-end flow', () => {
     controller.start();
     await controller.handleSpin(true); // forceBonus trigger
 
+    // hudBonuses[0] = start(), hudBonuses[1] = during initial spinReels() (must be false!)
+    expect(view.hudBonuses[1]).toBe(false);
     expect(fsm.state).toBe('IDLE');
     expect(engine.bonus.active).toBe(false);
     expect(view.calls).toContain('mood:true');
@@ -60,6 +70,6 @@ describe('GameController end-to-end flow', () => {
     expect(view.calls).toContain('banner:BONUS COMPLETE!');
     expect(view.calls).toContain('mood:false');
     // 1 base trigger spin + at least 8 free spins
-    expect(view.calls.filter((c) => c === 'spinReels').length).toBeGreaterThanOrEqual(9);
+    expect(view.calls.filter((c) => c.startsWith('spinReels:')).length).toBeGreaterThanOrEqual(9);
   });
 });

@@ -6,6 +6,7 @@ export interface HudCallbacks {
   onBetUp: () => void;
   onBetDown: () => void;
   onToggleAuto: () => void;
+  onToggleTurbo: () => void;
   onToggleMute: () => void;
   onTogglePaytable: () => void;
   onDemoBonus: () => void;
@@ -43,11 +44,13 @@ export class HudView extends Container {
   private readonly winVal: Text;
   private readonly spinBtn: ReturnType<typeof makeButton>;
   private readonly autoBtn: ReturnType<typeof makeButton>;
+  private readonly turboBtn: ReturnType<typeof makeButton>;
   private readonly muteBtn: ReturnType<typeof makeButton>;
+  private readonly demoBtn: ReturnType<typeof makeButton>;
   private readonly refillBtn: ReturnType<typeof makeButton>;
   private readonly betDownBtn: ReturnType<typeof makeButton>;
   private readonly betUpBtn: ReturnType<typeof makeButton>;
-  private displayedWin = 0;
+  private readonly winCounter = { v: 0 };
 
   constructor(callbacks: HudCallbacks) {
     super();
@@ -72,25 +75,29 @@ export class HudView extends Container {
     this.betUpBtn.container.on('pointertap', callbacks.onBetUp);
 
     this.spinBtn = makeButton('SPIN', 170, 62, 0xb91c1c, 0xfacc15, 24);
-    this.spinBtn.container.position.set(650, 17);
+    this.spinBtn.container.position.set(610, 17);
     this.spinBtn.container.on('pointertap', callbacks.onSpin);
 
-    this.autoBtn = makeButton('AUTO', 86, 44, 0x3b0d22, 0xd97706, 14);
-    this.autoBtn.container.position.set(840, 26);
+    this.autoBtn = makeButton('AUTO', 84, 44, 0x3b0d22, 0xd97706, 13);
+    this.autoBtn.container.position.set(795, 26);
     this.autoBtn.container.on('pointertap', callbacks.onToggleAuto);
 
-    const infoBtn = makeButton('INFO', 74, 44, 0x3b0d22, 0xd97706, 14);
-    infoBtn.container.position.set(936, 26);
+    this.turboBtn = makeButton('TURBO', 84, 44, 0x3b0d22, 0xd97706, 13);
+    this.turboBtn.container.position.set(889, 26);
+    this.turboBtn.container.on('pointertap', callbacks.onToggleTurbo);
+
+    const infoBtn = makeButton('INFO', 74, 44, 0x3b0d22, 0xd97706, 13);
+    infoBtn.container.position.set(983, 26);
     infoBtn.container.on('pointertap', callbacks.onTogglePaytable);
 
     this.muteBtn = makeButton('SFX ON', 84, 44, 0x3b0d22, 0xd97706, 13);
-    this.muteBtn.container.position.set(1020, 26);
+    this.muteBtn.container.position.set(1067, 26);
     this.muteBtn.container.on('pointertap', callbacks.onToggleMute);
 
     // Discreet evaluator shortcut to test Bonus Game on demand
-    const demoBtn = makeButton('DEMO BONUS', 120, 32, 0x4c1d95, 0xfacc15, 12);
-    demoBtn.container.position.set(1056, -42);
-    demoBtn.container.on('pointertap', callbacks.onDemoBonus);
+    this.demoBtn = makeButton('DEMO BONUS', 120, 32, 0x4c1d95, 0xfacc15, 12);
+    this.demoBtn.container.position.set(1056, -42);
+    this.demoBtn.container.on('pointertap', callbacks.onDemoBonus);
 
     this.refillBtn = makeButton('REFILL +1000', 140, 36, 0x15803d, 0xfacc15, 13);
     this.refillBtn.container.position.set(28, -44);
@@ -102,9 +109,10 @@ export class HudView extends Container {
       this.betUpBtn.container,
       this.spinBtn.container,
       this.autoBtn.container,
+      this.turboBtn.container,
       infoBtn.container,
       this.muteBtn.container,
-      demoBtn.container,
+      this.demoBtn.container,
       this.refillBtn.container,
     );
   }
@@ -135,23 +143,22 @@ export class HudView extends Container {
     this.betVal.text = bet.toFixed(2);
     this.betDownBtn.container.alpha = locked ? 0.4 : 1;
     this.betUpBtn.container.alpha = locked ? 0.4 : 1;
+    this.demoBtn.container.alpha = locked ? 0.4 : 1;
   }
 
   setWin(amount: number, animate = true): void {
-    gsap.killTweensOf(this);
+    gsap.killTweensOf(this.winCounter);
     if (!animate || amount === 0) {
-      this.displayedWin = amount;
+      this.winCounter.v = amount;
       this.winVal.text = amount.toFixed(2);
       return;
     }
-    const counter = { v: this.displayedWin };
-    gsap.to(counter, {
+    gsap.to(this.winCounter, {
       v: amount,
       duration: 0.65,
       ease: 'power2.out',
       onUpdate: () => {
-        this.displayedWin = counter.v;
-        this.winVal.text = counter.v.toFixed(2);
+        this.winVal.text = this.winCounter.v.toFixed(2);
       },
     });
   }
@@ -165,7 +172,16 @@ export class HudView extends Container {
     this.autoBtn.text.text = active ? 'AUTO ON' : 'AUTO';
     this.autoBtn.bg
       .clear()
-      .roundRect(0, 0, 86, 44, 12)
+      .roundRect(0, 0, 84, 44, 12)
+      .fill(active ? 0xb45309 : 0x3b0d22)
+      .stroke({ width: 2, color: 0xfacc15 });
+  }
+
+  setTurboActive(active: boolean): void {
+    this.turboBtn.text.text = active ? 'TURBO ON' : 'TURBO';
+    this.turboBtn.bg
+      .clear()
+      .roundRect(0, 0, 84, 44, 12)
       .fill(active ? 0xb45309 : 0x3b0d22)
       .stroke({ width: 2, color: 0xfacc15 });
   }

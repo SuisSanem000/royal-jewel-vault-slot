@@ -60,6 +60,37 @@ export class ReelColumn extends Container {
     sprite.scale.set(scale);
   }
 
+  highlightRow(row: number, isWinner: boolean): void {
+    const sprite = this.sprites[row];
+    if (!sprite) return;
+    gsap.killTweensOf(sprite.scale);
+    this.fitSprite(sprite);
+
+    if (isWinner) {
+      sprite.alpha = 1;
+      const base = sprite.scale.x;
+      gsap.to(sprite.scale, {
+        x: base * 1.09,
+        y: base * 1.09,
+        duration: 0.45,
+        yoyo: true,
+        repeat: -1,
+        ease: 'sine.inOut',
+      });
+    } else {
+      sprite.alpha = 0.42;
+    }
+  }
+
+  resetRowHighlights(): void {
+    for (let row = 0; row < ROW_COUNT; row++) {
+      const sprite = this.sprites[row];
+      gsap.killTweensOf(sprite.scale);
+      sprite.alpha = 1;
+      this.fitSprite(sprite);
+    }
+  }
+
   private randomSymbol(): SymbolId {
     return ALL_SYMBOLS[Math.floor(Math.random() * ALL_SYMBOLS.length)];
   }

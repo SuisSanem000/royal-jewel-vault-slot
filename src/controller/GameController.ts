@@ -6,6 +6,7 @@ export interface PresentationAdapter {
   updateHud(balance: number, bet: number, win: number, bonus: BonusState, canSpin: boolean): void;
   setSpinButton(label: string, enabled: boolean): void;
   setAutoActive(active: boolean): void;
+  setTurboActive(active: boolean): void;
   setBonusMood(active: boolean): void;
   spinReels(grid: Grid, turbo: boolean): Promise<void>;
   quickStopReels(): void;
@@ -22,6 +23,7 @@ export class GameController {
   private readonly fsm: GameStateMachine;
   private readonly view: PresentationAdapter;
   private autoSpin = false;
+  private turbo = false;
   private readonly delayMs: number;
 
   constructor(
@@ -75,6 +77,12 @@ export class GameController {
     }
   }
 
+  handleToggleTurbo(): void {
+    this.view.playClick();
+    this.turbo = !this.turbo;
+    this.view.setTurboActive(this.turbo);
+  }
+
   async handleSpin(forceBonus = false): Promise<void> {
     if (this.fsm.state === 'SPINNING') {
       this.view.quickStopReels();
@@ -100,6 +108,7 @@ export class GameController {
 
   private async executeSpin(options: { forceBonus?: boolean } = {}): Promise<void> {
     const isFreeSpin = this.engine.bonus.active;
+    const preSpinBonus = this.engine.bonus;
     this.fsm.transition('SPINNING');
     this.view.clearWins();
     this.view.playSpin();
@@ -107,11 +116,14 @@ export class GameController {
 
     const result = this.engine.spin(options);
 
-    // Update balance immediately when bet is placed (before win payout displays)
+    // Update balance immediately when bet is placed, without spoiling bonus state before reels land
     const balanceBeforeWin = Math.round((result.balanceAfter - result.totalWin) * 100) / 100;
-    this.view.updateHud(balanceBeforeWin, result.bet, 0, result.bonusState, false);
+    const spinningBonusView: BonusState = isFreeSpin
+      ? { ...preSpinBonus, spinsRemaining: Math.max(0, preSpinBonus.spinsRemaining - 1) }
+      : preSpinBonus;
+    this.view.updateHud(balanceBeforeWin, result.bet, 0, spinningBonusView, false);
 
-    await this.view.spinReels(result.grid, isFreeSpin && this.autoSpin);
+    await this.view.spinReels(result.grid, this.turbo || (isFreeSpin && this.autoSpin));
     this.fsm.transition('EVALUATING');
     this.view.setSpinButton(isFreeSpin ? 'BONUS' : 'SPIN', false);
 

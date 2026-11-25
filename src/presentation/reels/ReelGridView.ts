@@ -79,26 +79,35 @@ export class ReelGridView extends Container {
 
     const baseDelay = turbo ? 220 : 520;
     const stagger = turbo ? 90 : 210;
-    let scattersSeen = 0;
+    let scattersInResult = 0;
+    let scattersLanded = 0;
     let extraAnticipation = 0;
 
     const promises = this.columns.map((col, idx) => {
       const delay = baseDelay + idx * stagger + extraAnticipation;
-      if (scattersSeen >= 2 && !turbo) {
-        this.showAnticipation(idx);
+      const hasAnticipation = scattersInResult >= 2 && !turbo;
+      if (hasAnticipation) {
         extraAnticipation += 280;
       }
       if (grid[idx].includes('SCATTER')) {
-        scattersSeen++;
+        scattersInResult++;
       }
 
       return col.scheduleStop(grid[idx], delay, () => {
-        this.anticipationGraphics.clear();
+        if (grid[idx].includes('SCATTER')) {
+          scattersLanded++;
+        }
+        if (!turbo && scattersLanded >= 2 && idx + 1 < REEL_COUNT) {
+          this.showAnticipation(idx + 1);
+        } else {
+          this.anticipationGraphics.clear();
+        }
         onReelStop(idx);
       });
     });
 
     await Promise.all(promises);
+    this.anticipationGraphics.clear();
   }
 
   quickStop(onReelStop: (col: number) => void): void {
@@ -138,6 +147,12 @@ export class ReelGridView extends Container {
       for (const pos of scatterWin.positions) unique.set(`${pos.col},${pos.row}`, pos);
     }
 
+    for (let col = 0; col < REEL_COUNT; col++) {
+      for (let row = 0; row < ROW_COUNT; row++) {
+        this.columns[col].highlightRow(row, unique.has(`${col},${row}`));
+      }
+    }
+
     for (const pos of unique.values()) {
       const frame = new Sprite(this.textures.overlay);
       frame.anchor.set(0.5);
@@ -161,6 +176,9 @@ export class ReelGridView extends Container {
   clearHighlights(): void {
     this.paylineGraphics.clear();
     this.anticipationGraphics.clear();
+    for (const col of this.columns) {
+      col.resetRowHighlights();
+    }
     for (const child of this.overlayLayer.children) {
       gsap.killTweensOf(child.scale);
     }

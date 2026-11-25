@@ -65,6 +65,17 @@ export class SlotStage {
     this.titleText.text = active ? 'ROYAL FREE SPINS BONUS' : 'ROYAL JEWEL VAULT';
   }
 
+  showLoading(): Text {
+    const label = new Text({
+      text: 'LOADING ASSETS...',
+      style: { fill: 0xfde68a, fontSize: 22, fontWeight: '700', letterSpacing: 2 },
+    });
+    label.anchor.set(0.5);
+    label.position.set(STAGE_WIDTH / 2, STAGE_HEIGHT / 2);
+    this.root.addChild(label);
+    return label;
+  }
+
   spawnWinSparkles(count = 24): void {
     for (let i = 0; i < count; i++) {
       const dot = new Graphics().circle(0, 0, 4 + Math.random() * 4).fill(i % 2 === 0 ? 0xfacc15 : 0xff4d6d);

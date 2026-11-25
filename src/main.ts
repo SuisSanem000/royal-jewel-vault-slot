@@ -23,7 +23,10 @@ async function bootstrap(): Promise<void> {
   const stage = new SlotStage();
   await stage.init(mountEl);
 
+  const loadingText = stage.showLoading();
   const textures = await loadGameTextures();
+  loadingText.destroy();
+
   const sound = new SoundManager();
   const engine = new SlotEngine();
   const fsm = new GameStateMachine('BOOT');
@@ -35,7 +38,7 @@ async function bootstrap(): Promise<void> {
   bonusBar.position.set((STAGE_WIDTH - 780) / 2, 56);
 
   const banner = new ModalBanner(STAGE_WIDTH, STAGE_HEIGHT);
-  const paytable = new PaytableModal(STAGE_WIDTH, STAGE_HEIGHT);
+  const paytable = new PaytableModal(STAGE_WIDTH, STAGE_HEIGHT, textures);
 
   let controller!: GameController;
 
@@ -44,6 +47,7 @@ async function bootstrap(): Promise<void> {
     onBetUp: () => controller.handleBetUp(),
     onBetDown: () => controller.handleBetDown(),
     onToggleAuto: () => controller.handleToggleAuto(),
+    onToggleTurbo: () => controller.handleToggleTurbo(),
     onToggleMute: () => {
       const muted = sound.toggleMute();
       hud.setMuted(muted);
@@ -72,6 +76,7 @@ async function bootstrap(): Promise<void> {
     },
     setSpinButton: (label, enabled) => hud.setSpinLabel(label, enabled),
     setAutoActive: (active) => hud.setAutoActive(active),
+    setTurboActive: (active) => hud.setTurboActive(active),
     setBonusMood: (active) => stage.setBonusMood(active),
     spinReels: (grid, turbo) => reels.spinTo(grid, turbo, (col) => sound.playReelStop(col)),
     quickStopReels: () => reels.quickStop((col) => sound.playReelStop(col)),
@@ -97,6 +102,11 @@ async function bootstrap(): Promise<void> {
   controller.start();
 
   window.addEventListener('keydown', (e) => {
+    if (paytable.visible && (e.code === 'Space' || e.code === 'Escape')) {
+      e.preventDefault();
+      paytable.visible = false;
+      return;
+    }
     if (e.code === 'Space' && !e.repeat) {
       e.preventDefault();
       void controller.handleSpin();

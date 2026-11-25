@@ -1,6 +1,8 @@
 import gsap from 'gsap';
-import { Container, Graphics, Text } from 'pixi.js';
-import type { BonusState } from '../../core/types';
+import { Container, Graphics, Sprite, Text } from 'pixi.js';
+import { PAYTABLE, SCATTER_FREE_SPINS, SCATTER_PAYOUTS } from '../../core/config';
+import type { BonusState, SymbolId } from '../../core/types';
+import type { GameTextures } from '../assets';
 
 export class BonusHeaderBar extends Container {
   private readonly spinsText: Text;
@@ -58,6 +60,7 @@ export class ModalBanner extends Container {
     const backdrop = new Graphics()
       .rect(0, 0, stageWidth, stageHeight)
       .fill({ color: 0x090208, alpha: 0.65 });
+    backdrop.eventMode = 'static';
     this.addChild(backdrop);
 
     const box = new Graphics()
@@ -111,49 +114,108 @@ export class ModalBanner extends Container {
   }
 }
 
+const PAYTABLE_ORDER: Exclude<SymbolId, 'SCATTER'>[] = [
+  'WILD',
+  'HIGH_RUBY',
+  'HIGH_SAPPHIRE',
+  'HIGH_EMERALD',
+  'HIGH_AMETHYST',
+  'LOW_A',
+  'LOW_K',
+  'LOW_Q',
+  'LOW_J',
+];
+
 export class PaytableModal extends Container {
-  constructor(stageWidth: number, stageHeight: number) {
+  constructor(stageWidth: number, stageHeight: number, textures?: GameTextures) {
     super();
     this.visible = false;
 
     const backdrop = new Graphics()
       .rect(0, 0, stageWidth, stageHeight)
-      .fill({ color: 0x090208, alpha: 0.78 });
+      .fill({ color: 0x090208, alpha: 0.8 });
     backdrop.eventMode = 'static';
     backdrop.on('pointertap', () => {
       this.visible = false;
     });
 
+    const left = stageWidth / 2 - 410;
+    const top = stageHeight / 2 - 260;
     const panel = new Graphics()
-      .roundRect(stageWidth / 2 - 320, stageHeight / 2 - 210, 640, 420, 20)
+      .roundRect(left, top, 820, 520, 20)
       .fill({ color: 0x1f0814, alpha: 0.98 })
       .stroke({ width: 4, color: 0xfacc15 });
+    panel.eventMode = 'static';
+    panel.on('pointertap', () => {
+      this.visible = false;
+    });
 
-    const body = new Text({
+    const title = new Text({
+      text: 'ROYAL JEWEL VAULT — PAYTABLE & RULES',
+      style: { fill: 0xfacc15, fontSize: 24, fontWeight: '900', fontFamily: 'Georgia, serif' },
+    });
+    title.position.set(left + 32, top + 24);
+
+    this.addChild(backdrop, panel, title);
+
+    // 2-column visual symbol payout grid
+    PAYTABLE_ORDER.forEach((sym, i) => {
+      const col = i < 5 ? 0 : 1;
+      const row = i < 5 ? i : i - 5;
+      const x = left + 32 + col * 395;
+      const y = top + 74 + row * 56;
+
+      if (textures) {
+        const icon = new Sprite(textures.symbols[sym]);
+        icon.anchor.set(0.5);
+        const s = 44 / Math.max(icon.texture.width || 1, icon.texture.height || 1);
+        icon.scale.set(s);
+        icon.position.set(x + 22, y + 22);
+        this.addChild(icon);
+      }
+
+      const p = PAYTABLE[sym];
+      const label = sym.replace('HIGH_', '').replace('LOW_', '');
+      const line = new Text({
+        text: `${label}   3x: ${p[3]}  |  4x: ${p[4]}  |  5x: ${p[5]}`,
+        style: { fill: 0xfff8dc, fontSize: 15, fontWeight: '600', fontFamily: 'system-ui, sans-serif' },
+      });
+      line.position.set(x + 58, y + 12);
+      this.addChild(line);
+    });
+
+    // Scatter entry in column 2 row 5
+    if (textures) {
+      const scatterIcon = new Sprite(textures.symbols.SCATTER);
+      scatterIcon.anchor.set(0.5);
+      const s = 44 / Math.max(scatterIcon.texture.width || 1, scatterIcon.texture.height || 1);
+      scatterIcon.scale.set(s);
+      scatterIcon.position.set(left + 32 + 395 + 22, top + 74 + 4 * 56 + 22);
+      this.addChild(scatterIcon);
+    }
+    const scatterLine = new Text({
+      text: `SCATTER  3/4/5 → ${SCATTER_FREE_SPINS[3]}/${SCATTER_FREE_SPINS[4]}/${SCATTER_FREE_SPINS[5]} Spins (${SCATTER_PAYOUTS[3]}x/${SCATTER_PAYOUTS[4]}x/${SCATTER_PAYOUTS[5]}x)`,
+      style: { fill: 0xfde68a, fontSize: 14, fontWeight: '700', fontFamily: 'system-ui, sans-serif' },
+    });
+    scatterLine.position.set(left + 32 + 395 + 58, top + 74 + 4 * 56 + 13);
+    this.addChild(scatterLine);
+
+    const rules = new Text({
       text: [
-        'ROYAL JEWEL VAULT — PAYTABLE & RULES',
-        '',
-        '• 5 Reels × 3 Rows | 20 Fixed Paylines (Left to Right)',
-        '• High Symbols: Ruby > Sapphire > Emerald > Amethyst',
-        '• Low Symbols: A > K > Q > J',
+        '• 5 Reels × 3 Rows | 20 Fixed Paylines (Left to Right) | Payouts scale with Bet ÷ 10',
         '• WILD substitutes for all regular symbols',
-        '• 3 / 4 / 5 SCATTER anywhere triggers 8 / 10 / 12 Free Spins',
-        '• Free Spins Bonus: Consecutive wins step multiplier',
-        '  up from 1x → 2x → 3x → 5x (re-triggers add more spins!)',
-        '',
-        'Controls: Click SPIN or press SPACE (press again to Quick Stop)',
-        'Click anywhere to close',
+        '• Free Spins Bonus: Each winning spin steps multiplier up 1x → 2x → 3x → 5x (re-triggers add spins)',
+        '• Controls: SPIN or SPACE (press again to Quick Stop)  |  Click anywhere or press ESC / SPACE to close',
       ].join('\n'),
       style: {
-        fill: 0xfff8dc,
-        fontSize: 17,
-        lineHeight: 28,
+        fill: 0xe5e7eb,
+        fontSize: 14,
+        lineHeight: 24,
         fontFamily: 'system-ui, sans-serif',
       },
     });
-    body.position.set(stageWidth / 2 - 285, stageHeight / 2 - 180);
-
-    this.addChild(backdrop, panel, body);
+    rules.position.set(left + 32, top + 382);
+    this.addChild(rules);
   }
 
   toggle(): void {
