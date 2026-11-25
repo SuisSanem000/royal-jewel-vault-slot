@@ -421,12 +421,19 @@ export class HudView extends Container {
       fitTextWidth(this.winBlock.value, this.winBlock.maxWidth);
       return;
     }
+    this.winCounter.v = 0;
+    const roundStep = !this.formatConfig.currency && Number.isInteger(amount);
     gsap.to(this.winCounter, {
       v: amount,
       duration: 0.65,
       ease: 'power2.out',
       onUpdate: () => {
-        this.winBlock.value.text = formatCredits(this.winCounter.v, this.formatConfig);
+        const displayVal = roundStep ? Math.round(this.winCounter.v) : this.winCounter.v;
+        this.winBlock.value.text = formatCredits(displayVal, this.formatConfig);
+        fitTextWidth(this.winBlock.value, this.winBlock.maxWidth);
+      },
+      onComplete: () => {
+        this.winBlock.value.text = formatCredits(amount, this.formatConfig);
         fitTextWidth(this.winBlock.value, this.winBlock.maxWidth);
       },
     });
