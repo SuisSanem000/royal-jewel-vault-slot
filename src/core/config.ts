@@ -3,8 +3,8 @@ import type { SymbolId } from './types';
 export const REEL_COUNT = 5;
 export const ROW_COUNT = 3;
 export const INITIAL_BALANCE = 1000;
-export const BET_STEPS = [1, 2, 5, 10, 20, 50] as const;
-export const DEFAULT_BET_INDEX = 2; // 5 credits
+export const BET_STEPS = [10, 20, 50, 100, 200, 500] as const;
+export const DEFAULT_BET_INDEX = 0; // 10 credits (lineBet = 1 -> clean integer awards)
 
 export const BONUS_MULTIPLIERS = [1, 2, 3, 5] as const;
 

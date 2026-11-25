@@ -245,7 +245,7 @@ export class PaytableModal extends Container {
     });
 
     this.titleText = new Text({
-      text: 'ROYAL JEWEL VAULT — PAYTABLE (FOR BET 5)',
+      text: 'ROYAL JEWEL VAULT — PAYTABLE (FOR BET 10)',
       style: {
         fill: 0xfacc15,
         fontSize: 22,
@@ -326,7 +326,7 @@ export class PaytableModal extends Container {
     rules.position.set(left + 32, top + 382);
     this.content.addChild(rules);
 
-    this.updatePayouts(5);
+    this.updatePayouts(10);
     this.setViewport(stageWidth, stageHeight);
   }
 

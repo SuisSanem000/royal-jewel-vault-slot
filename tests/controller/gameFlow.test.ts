@@ -94,7 +94,7 @@ describe('GameController end-to-end flow', () => {
 
   it('locks HUD mid-spin, ignores handleDemoBonus and AUTO mid-spin, and triggers quick-stop once on handleSpin', async () => {
     let resolveSpin!: () => void;
-    const engine = new SlotEngine(new SeededRng(99), 5);
+    const engine = new SlotEngine(new SeededRng(99), 10);
     const fsm = new GameStateMachine('BOOT');
     const view = createMockView();
     view.spinReels = vi.fn(

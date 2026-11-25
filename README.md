@@ -42,11 +42,11 @@ npm run preview # Preview production build locally
 - **Bonus Game (Royal Free Spins):** 3 / 4 / 5 Scatters award `8 / 10 / 12` Free Spins with a progressive win multiplier (`1x → 2x → 3x → 5x`), Scatter re-triggers, `BONUS COMPLETE!` summary, and clean return to base play.
 - **Controls & Shortcuts:**
   - `SPIN` / `Space` / `Enter`: Spin reels; press again mid-spin for **Quick Stop** (`STOP`).
-  - `-` / `+` or `ArrowUp` / `ArrowDown`: Step bet (`1, 2, 5, 10, 20, 50` credits; locked during `AUTO` and `BONUS`).
+  - `-` / `+` or `ArrowUp` / `ArrowDown`: Step bet (`10, 20, 50, 100, 200, 500` credits; locked during `AUTO` and `BONUS`).
   - `AUTO`, `TURBO` (`T`), `INFO` (`I`), `SFX ON` (`M`): Autoplay, fast stops, Paytable & Rules modal (`ESC` to close), Web Audio mute.
   - `FS`: Fullscreen toggle (shown only where `document.fullscreenEnabled` is supported).
   - `DEMO BONUS`: Guarantees a 3-Scatter trigger for quick evaluation.
-  - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset (`1000.00` balance, `5.00` bet).
+  - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset (`1,000` balance, `10` bet).
   - `REFILL +1000`: Appears when idle and balance drops below the active bet.
 - **Operator / Compliance Launch Params (URL Query):**
   - `?currency=EUR&locale=de-DE`: Formats all credits via `Intl.NumberFormat`.

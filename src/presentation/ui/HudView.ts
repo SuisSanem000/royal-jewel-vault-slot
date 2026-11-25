@@ -125,7 +125,7 @@ export class HudView extends Container {
     this.addChild(this.bar);
 
     this.balanceBlock = this.createStatBlock('BALANCE', formatCredits(1000, this.formatConfig), 165);
-    this.betBlock = this.createStatBlock('BET', formatCredits(5, this.formatConfig), 96);
+    this.betBlock = this.createStatBlock('BET', formatCredits(10, this.formatConfig), 96);
     this.winBlock = this.createStatBlock('WIN', formatCredits(0, this.formatConfig), 150);
 
     this.betDownBtn = makeButton('-', 38, 38, 0x3b0d22, 0xeab308, 22);

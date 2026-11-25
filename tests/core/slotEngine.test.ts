@@ -9,7 +9,7 @@ function makeGrid(rows: [SymbolId[], SymbolId[], SymbolId[]]): Grid {
 
 describe('SlotEngine', () => {
   it('deducts bet on base spin and prevents spinning with insufficient balance', () => {
-    const engine = new SlotEngine(new SeededRng(42), 5);
+    const engine = new SlotEngine(new SeededRng(42), 10);
     const losingGrid = makeGrid([
       ['HIGH_RUBY', 'HIGH_SAPPHIRE', 'HIGH_EMERALD', 'HIGH_AMETHYST', 'LOW_A'],
       ['LOW_K', 'LOW_Q', 'LOW_J', 'HIGH_RUBY', 'HIGH_SAPPHIRE'],
@@ -81,7 +81,7 @@ describe('SlotEngine', () => {
 
     engine.reset();
     expect(engine.balance).toBe(1000);
-    expect(engine.bet).toBe(5);
+    expect(engine.bet).toBe(10);
     expect(engine.bonus.active).toBe(false);
   });
 

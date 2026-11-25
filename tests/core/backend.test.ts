@@ -8,7 +8,7 @@ describe('LocalSlotBackend & RgsSlotBackend', () => {
     const engine = new SlotEngine(new SeededRng(42), 1000);
     const backend = new LocalSlotBackend(engine);
     const result = await backend.spin();
-    expect(result.bet).toBe(5);
+    expect(result.bet).toBe(10);
     expect(backend.balance).toBe(result.balanceAfter);
   });
 
