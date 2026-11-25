@@ -177,7 +177,7 @@ async function bootstrap(): Promise<void> {
   const adapter: PresentationAdapter = {
     updateHud(balance, bet, win, bonus, controlsLocked, stopAllActive, autoControlEnabled) {
       hud.setBalance(balance, !controlsLocked && !bonus.active && balance < bet);
-      hud.setControlsLocked(bet, controlsLocked || bonus.active);
+      hud.setControlsLocked(bet, controlsLocked || bonus.active, bonus.active || balance >= bet);
       hud.setStopAllMode(stopAllActive);
       hud.setAutoEnabled(autoControlEnabled);
       hud.setWin(win, win > 0);

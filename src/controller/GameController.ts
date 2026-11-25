@@ -170,9 +170,7 @@ export class GameController {
     if (this.autoSpin) {
       this.autoSpin = false;
       this.view.setAutoActive(false);
-      if (this.fsm.state === 'IDLE') {
-        this.syncHud(this.lastWin);
-      }
+      this.syncHud(this.fsm.state === 'IDLE' ? this.lastWin : 0);
     }
   }
 

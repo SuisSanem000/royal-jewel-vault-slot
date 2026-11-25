@@ -375,15 +375,18 @@ export class HudView extends Container {
     this.refillBtn.container.visible = showRefill;
   }
 
-  setControlsLocked(bet: number, locked: boolean): void {
+  setControlsLocked(bet: number, locked: boolean, canSpin = true): void {
     this.betBlock.value.text = formatCredits(bet, this.formatConfig);
     fitTextWidth(this.betBlock.value, this.betBlock.maxWidth);
     const alpha = locked ? 0.4 : 1;
     const cursor = locked ? 'default' : 'pointer';
-    for (const btn of [this.betDownBtn, this.betUpBtn, this.demoBtn, this.infoBtn]) {
+    for (const btn of [this.betDownBtn, this.betUpBtn, this.infoBtn]) {
       btn.container.alpha = alpha;
       btn.container.cursor = cursor;
     }
+    const demoEnabled = !locked && canSpin;
+    this.demoBtn.container.alpha = demoEnabled ? 1 : 0.4;
+    this.demoBtn.container.cursor = demoEnabled ? 'pointer' : 'default';
     this.resetBtn.container.alpha = 1;
     this.resetBtn.container.cursor = 'pointer';
     if (this.turboLocked) {
