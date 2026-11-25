@@ -249,4 +249,41 @@ describe('GameController end-to-end flow', () => {
     expect(view.calls).toContain('banner:CONNECTION LOST');
     expect(fsm.state).toBe('IDLE');
   });
+
+  it('resets TURBO on handleReset and restores active bonus mood when resuming saved session', () => {
+    const engine = new SlotEngine(new SeededRng(12), 1000);
+    const fsm = new GameStateMachine('BOOT');
+    const view = createMockView();
+    const controller = new GameController(engine, fsm, view, 0);
+
+    controller.start();
+    controller.handleToggleTurbo();
+    expect(controller.isTurbo).toBe(true);
+
+    controller.handleReset();
+    expect(controller.isTurbo).toBe(false);
+    expect(view.setTurboActive).toHaveBeenLastCalledWith(false);
+
+    // Simulate reload with an active bonus saved in SlotEngine
+    const restoredEngine = new SlotEngine(new SeededRng(12), 1000);
+    restoredEngine.restoreState({
+      balance: 880,
+      bet: 20,
+      bonus: {
+        active: true,
+        spinsRemaining: 5,
+        spinsAwardedTotal: 8,
+        multiplierIndex: 1,
+        multiplier: 2,
+        totalBonusWin: 40,
+      },
+    });
+    const restoredFsm = new GameStateMachine('BOOT');
+    const restoredView = createMockView();
+    const restoredController = new GameController(restoredEngine, restoredFsm, restoredView, 0);
+    restoredController.start(40);
+
+    expect(restoredView.calls).toContain('mood:true');
+    expect(restoredView.stopAllFlags[0]).toBe(true);
+  });
 });

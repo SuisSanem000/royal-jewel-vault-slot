@@ -10,7 +10,7 @@ import { loadGameTextures } from './presentation/assets';
 import { SoundManager } from './presentation/audio';
 import { ReelGridView } from './presentation/reels/ReelGridView';
 import { SlotStage, STAGE_HEIGHT, STAGE_WIDTH } from './presentation/SlotStage';
-import { loadPreferences, savePreferences } from './presentation/storage';
+import { clearSession, loadSession, saveSession } from './presentation/storage';
 import { HudView } from './presentation/ui/HudView';
 import { BonusHeaderBar, ModalBanner, PaytableModal } from './presentation/ui/Overlays';
 
@@ -25,7 +25,7 @@ async function bootstrap(): Promise<void> {
   if (!mountEl) throw new Error('Missing #app mount element');
 
   const launch = parseLaunchConfig(window.location.search);
-  const savedPrefs = loadPreferences();
+  const savedSession = loadSession();
 
   const stage = new SlotStage();
   await stage.init(mountEl);
@@ -35,21 +35,23 @@ async function bootstrap(): Promise<void> {
   loadingIndicator.destroy();
 
   const sound = new SoundManager();
-  if (savedPrefs.muted !== undefined) {
-    sound.setMuted(savedPrefs.muted);
-  }
+  sound.setMuted(Boolean(savedSession.muted));
 
   const engine = new SlotEngine();
-  if (savedPrefs.bet !== undefined) {
-    engine.setBet(savedPrefs.bet);
-  }
+  engine.restoreState({
+    balance: savedSession.balance,
+    bet: savedSession.bet,
+    bonus: savedSession.bonus,
+  });
   const backend = launch.rgsUrl
     ? new RgsSlotBackend(engine, { endpointUrl: launch.rgsUrl })
     : new LocalSlotBackend(engine);
 
   const fsm = new GameStateMachine('BOOT');
 
-  const reels = new ReelGridView(textures, initialDisplayGrid());
+  let currentGrid: Grid = savedSession.grid ?? initialDisplayGrid();
+  let lastSavedWin = savedSession.lastWin ?? 0;
+  const reels = new ReelGridView(textures, currentGrid);
   stage.onReducedMotionChange((reduced) => reels.setReducedMotion(reduced));
 
   const bonusBar = new BonusHeaderBar(launch.format);
@@ -65,11 +67,15 @@ async function bootstrap(): Promise<void> {
         (document as unknown as { webkitFullscreenEnabled?: boolean }).webkitFullscreenEnabled,
     );
 
-  const persistPrefs = () => {
-    savePreferences({
-      muted: sound.muted,
-      turbo: controller.isTurbo,
+  const persistSession = (winAmount = lastSavedWin) => {
+    lastSavedWin = winAmount;
+    saveSession({
+      balance: backend.balance,
       bet: backend.bet,
+      lastWin: winAmount,
+      muted: sound.muted,
+      grid: currentGrid,
+      bonus: backend.bonus.active ? backend.bonus : undefined,
     });
   };
 
@@ -97,11 +103,11 @@ async function bootstrap(): Promise<void> {
       },
       onBetUp: () => {
         controller.handleBetUp();
-        persistPrefs();
+        persistSession(0);
       },
       onBetDown: () => {
         controller.handleBetDown();
-        persistPrefs();
+        persistSession(0);
       },
       onToggleAuto: () => {
         paytable.visible = false;
@@ -109,12 +115,11 @@ async function bootstrap(): Promise<void> {
       },
       onToggleTurbo: () => {
         controller.handleToggleTurbo();
-        persistPrefs();
       },
       onToggleMute: () => {
         const muted = sound.toggleMute();
         hud.setMuted(muted);
-        persistPrefs();
+        persistSession();
       },
       onTogglePaytable: () => {
         if (!paytable.visible && !controller.isIdle) return;
@@ -127,11 +132,18 @@ async function bootstrap(): Promise<void> {
         paytable.visible = false;
         void controller.handleDemoBonus();
       },
-      onRefill: () => controller.handleRefill(),
+      onRefill: () => {
+        controller.handleRefill();
+        persistSession(0);
+      },
       onReset: () => {
         paytable.visible = false;
+        currentGrid = initialDisplayGrid();
+        lastSavedWin = 0;
+        sound.setMuted(false);
+        hud.setMuted(false);
         controller.handleReset();
-        persistPrefs();
+        clearSession();
       },
       onToggleFullscreen: () => void toggleFullscreen(),
     },
@@ -175,21 +187,29 @@ async function bootstrap(): Promise<void> {
     }
   };
 
+  let suppressNextSave = true;
+
   const adapter: PresentationAdapter = {
     updateHud(balance, bet, win, bonus, controlsLocked, stopAllActive, autoControlEnabled) {
       hud.setBalance(balance, !controlsLocked && !bonus.active && balance < bet);
       hud.setControlsLocked(bet, controlsLocked || bonus.active, bonus.active || balance >= bet);
       hud.setStopAllMode(stopAllActive);
       hud.setAutoEnabled(autoControlEnabled);
-      hud.setWin(win, win > 0);
+      hud.setWin(win, !suppressNextSave && win > 0);
+      suppressNextSave = false;
       paytable.updatePayouts(bet);
       bonusBar.updateBonus(bonus);
+      persistSession(win);
     },
     setSpinButton: (label, enabled) => hud.setSpinLabel(label, enabled),
     setAutoActive: (active) => hud.setAutoActive(active),
     setTurboActive: (active) => hud.setTurboActive(active),
     setBonusMood: (active) => stage.setBonusMood(active),
-    spinReels: (grid, turbo) => reels.spinTo(grid, turbo, (col) => sound.playReelStop(col)),
+    spinReels: (grid, turbo) => {
+      currentGrid = grid;
+      persistSession(0);
+      return reels.spinTo(grid, turbo, (col) => sound.playReelStop(col));
+    },
     quickStopReels: () => reels.quickStop((col) => sound.playReelStop(col)),
     async showWins(lineWins, scatterWin, totalWin, bet, turbo) {
       reels.showWins(lineWins, scatterWin);
@@ -232,11 +252,8 @@ async function bootstrap(): Promise<void> {
     formatConfig: launch.format,
   });
 
-  if (savedPrefs.turbo && !launch.ukgcMode) {
-    controller.handleToggleTurbo();
-  }
-
-  controller.start();
+  // Keep TURBO OFF by default across sessions and restore saved win without animation
+  controller.start(savedSession.lastWin ?? 0);
 
   // Page Visibility API & pagehide handling: freeze ticker, timers, GSAP & audio when backgrounded
   const setBackgroundPaused = (paused: boolean) => {
@@ -278,12 +295,11 @@ async function bootstrap(): Promise<void> {
     if (e.code === 'KeyM' && !e.repeat) {
       const muted = sound.toggleMute();
       hud.setMuted(muted);
-      persistPrefs();
+      persistSession();
       return;
     }
     if (e.code === 'KeyT' && !e.repeat) {
       controller.handleToggleTurbo();
-      persistPrefs();
       return;
     }
     if (e.code === 'KeyI' && !e.repeat) {
@@ -297,13 +313,13 @@ async function bootstrap(): Promise<void> {
     if (e.code === 'ArrowUp' && !e.repeat) {
       e.preventDefault();
       controller.handleBetUp();
-      persistPrefs();
+      persistSession(0);
       return;
     }
     if (e.code === 'ArrowDown' && !e.repeat) {
       e.preventDefault();
       controller.handleBetDown();
-      persistPrefs();
+      persistSession(0);
     }
   });
 }

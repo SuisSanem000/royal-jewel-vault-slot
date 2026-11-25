@@ -183,6 +183,20 @@ export class SlotEngine {
     this._bonus = createEmptyBonusState();
   }
 
+  /** Restores persisted session snapshot (balance, bet, and any active bonus). */
+  restoreState(snapshot: { balance?: number; bet?: number; bonus?: BonusState }): void {
+    if (snapshot.balance !== undefined && Number.isFinite(snapshot.balance) && snapshot.balance >= 0) {
+      this._balance = roundCredits(snapshot.balance);
+    }
+    if (snapshot.bet !== undefined) {
+      const idx = BET_STEPS.indexOf(snapshot.bet as (typeof BET_STEPS)[number]);
+      if (idx !== -1) this._betIndex = idx;
+    }
+    if (snapshot.bonus?.active && snapshot.bonus.spinsRemaining > 0) {
+      this._bonus = { ...snapshot.bonus };
+    }
+  }
+
   /** Resets balance, bet, and bonus state back to initial defaults */
   reset(): void {
     this._balance = INITIAL_BALANCE;

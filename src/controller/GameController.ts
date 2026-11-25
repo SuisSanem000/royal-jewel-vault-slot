@@ -113,10 +113,14 @@ export class GameController {
     return this.autoSpin || (this.isIdle && this.backend.canSpin());
   }
 
-  start(): void {
+  start(initialWin = 0): void {
     this.fsm.transition('IDLE');
-    this.lastWin = 0;
-    this.syncHud(0);
+    this.lastWin = initialWin;
+    if (this.backend.bonus.active) {
+      this.isBonusFlow = true;
+      this.view.setBonusMood(true);
+    }
+    this.syncHud(initialWin);
     this.view.setSpinButton('SPIN', this.backend.canSpin());
   }
 
@@ -147,18 +151,20 @@ export class GameController {
     this.view.setSpinButton('SPIN', this.backend.canSpin());
   }
 
-  /** Unconditionally stops all active spins, auto-spins, bonus rounds, and timers, then resets state. */
+  /** Unconditionally stops all active spins, auto-spins, bonus rounds, and timers, then resets everything. */
   handleReset(): void {
     this.runId++;
     this.clearAutoTimer();
     this.clearPause();
     this.autoSpin = false;
+    this.turbo = false;
     this.isBonusFlow = false;
     this.quickStopped = false;
     this.lastWin = 0;
 
     this.view.playClick();
     this.view.setAutoActive(false);
+    this.view.setTurboActive(false);
     this.view.abortPresentation();
     this.backend.reset();
     this.fsm.reset('IDLE');

@@ -28,6 +28,7 @@ export interface GameBackend {
   setBet(bet: number): boolean;
   refillCredits(amount?: number): number;
   spin(options?: SpinRequestOptions): Promise<SpinResult>;
+  restoreState(snapshot: { balance?: number; bet?: number; bonus?: BonusState }): void;
   finishBonus(): void;
   reset(): void;
 }
@@ -70,6 +71,10 @@ export class LocalSlotBackend implements GameBackend {
 
   async spin(options: SpinRequestOptions = {}): Promise<SpinResult> {
     return this.engine.spin(options);
+  }
+
+  restoreState(snapshot: { balance?: number; bet?: number; bonus?: BonusState }): void {
+    this.engine.restoreState(snapshot);
   }
 
   finishBonus(): void {

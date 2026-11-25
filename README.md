@@ -29,7 +29,7 @@ npm run dev
 Open the Vite URL (default: `http://localhost:5173`).
 
 ```bash
-npm test        # Vitest unit & end-to-end flow tests (32/32 passing)
+npm test        # Vitest unit & end-to-end flow tests (33/33 passing)
 npm run build   # Strict TypeScript check (tsc --noEmit) + Vite bundle
 npm run preview # Preview production build locally
 ```
@@ -43,10 +43,10 @@ npm run preview # Preview production build locally
 - **Controls & Shortcuts:**
   - `SPIN` / `Space` / `Enter`: Spin reels; press again mid-spin for **Quick Stop** (`STOP`).
   - `-` / `+` or `ArrowUp` / `ArrowDown`: Step bet (`10, 20, 50, 100, 200, 500` credits; locked during `AUTO` and `BONUS`).
-  - `AUTO`, `TURBO` (`T`), `INFO` (`I`), `SFX ON` (`M`): Autoplay, fast stops, Paytable & Rules modal (`ESC` to close), Web Audio mute.
+  - `AUTO`, `TURBO` (`T`, starts OFF by default), `INFO` (`I`), `SFX ON` (`M`): Autoplay, fast stops, Paytable & Rules modal (`ESC` to close), Web Audio mute.
   - `FS`: Fullscreen toggle (shown only where `document.fullscreenEnabled` is supported).
   - `DEMO BONUS`: Guarantees a 3-Scatter trigger for quick evaluation.
-  - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset (`1,000` balance, `10` bet).
+  - `RESET` / `STOP ALL`: Always active; switches to **`STOP ALL`** during `AUTO` or `BONUS` to abort any running flow immediately and reset everything (`1,000` balance, `10` bet, `TURBO`/`AUTO` OFF, unmuted, initial reels, and clears saved session).
   - `REFILL +1000`: Appears when idle and balance drops below the active bet.
 - **Operator / Compliance Launch Params (URL Query):**
   - `?currency=EUR&locale=de-DE`: Formats all credits via `Intl.NumberFormat`.
@@ -83,7 +83,7 @@ royal-jewel-vault-slot/
 │   │   └── ui/                    # Reflowable HudView + BonusHeaderBar, ModalBanner, PaytableModal
 │   ├── controller/GameController.ts  # Mediates HUD, FSM, GameBackend & PresentationAdapter
 │   └── main.ts                    # Bootstrap, launch params, visibility & keyboard shortcuts
-└── tests/                         # 32/32 Vitest tests (core, presentation, controller)
+└── tests/                         # 33/33 Vitest tests (core, presentation, controller)
 ```
 
 ---
@@ -107,13 +107,13 @@ royal-jewel-vault-slot/
 - **Browser Zoom & 3× DPR Support:** Clamps `devicePixelRatio` to `[1, 3]` for native 3× mobile Retina and 2K/4K sharpness, updating `renderer.resolution` live on `window.resize`, `visualViewport.resize`, and `screen.orientation` changes.
 - **WebGL Context Loss & Tab Visibility:** `webglcontextlost`/`webglcontextrestored` DOM recovery overlay; `visibilitychange`/`pagehide` freezes PixiJS `Ticker`, GSAP, Web Audio, and all active reel/bonus/auto timers (`PausableTimerManager`).
 - **High-Res Texture Atlas & Font Preloading:** [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) packs all 9 `768×768` Lanczos symbols into a single `~1.05 MB` WebP spritesheet (`symbols.webp` + `symbols.json`, quality `96`) loaded with a live `%` progress bar after `document.fonts.ready`.
-- **Accessibility & Persistence:** `prefers-reduced-motion` disables blur, bounce, and sparkles; `localStorage` persists mute/turbo/bet safely inside `try/catch` (Private Mode & sandboxed iframe safe).
+- **Accessibility & Session Persistence:** `prefers-reduced-motion` disables blur, bounce, and sparkles; `localStorage` safely persists current game session (`balance`, `bet`, `lastWin`, reels, active `bonus`, `muted`) across page reloads (`try/catch` Private Mode & iframe safe), while keeping `TURBO` OFF by default and clearing everything on `RESET` / `STOP ALL`.
 
 ---
 
 ## Testing & QA Procedures
 
-- **Automated Unit & Flow Suite (`32/32` Vitest):**
+- **Automated Unit & Flow Suite (`33/33` Vitest):**
   - *Core Math & State:* Paylines, Wild substitution, Scatter triggers/re-triggers, progressive multipliers (`evaluator`, `slotEngine`, `stateMachine`).
   - *Operator & Transport:* `Intl.NumberFormat` / URL launch params (`format`), `RgsSlotBackend` idempotency, retries & disconnect recovery (`backend`).
   - *Presentation & Flows:* Responsive stage/DPR math (`layout`), sandboxed `localStorage` guards (`storage`), and end-to-end flows (`gameFlow`: bonus lifecycle, `STOP ALL` cancellation, UKGC spin floor, Reality Check).
