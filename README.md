@@ -46,6 +46,8 @@ npm run preview # Preview the production bundle locally
 
 ```text
 royal-jewel-vault-slot/
+├── scripts/
+│   └── normalize-assets.mjs   # Automated designer-asset renamer & resizer (512×512)
 ├── public/assets/symbols/     # Normalized, 512×512 optimized PNG copies of provided symbols
 ├── src/
 │   ├── core/                  # PURE TypeScript — ZERO PixiJS or DOM imports
@@ -81,8 +83,8 @@ royal-jewel-vault-slot/
    Each `ReelColumn` recycles 4 sprites inside a `Graphics`-masked `Container` driven by PixiJS's 60fps `Ticker` with a vertical `BlurFilter` during high-speed scroll. GSAP handles declarative timelines (`back.out(2.2)` landing bounce, pulsing `symbol_overlay.png` win frames, winning symbol scale pop with non-winner dimming, and rolling win count-ups) with clean `killTweensOf` cancellation on Quick Stop.
 4. **Guarded Finite State Machine (`GameStateMachine`):**
    An explicit `ALLOWED_TRANSITIONS` table (`BOOT → IDLE → SPINNING → EVALUATING → WIN_PRESENTATION → BONUS_INTRO → BONUS_ACTIVE → BONUS_OUTRO → IDLE`) prevents double-spins, mid-spin bet changes, and invalid bonus transitions.
-5. **Proactive Asset Optimization:**
-   Normalized inconsistent raw symbol filenames and downscaled `1254×1254` PNGs (~9.7 MB total) to `512×512` (~2.2 MB total, ~77% smaller) for fast WebGL texture upload while staying crisp on HiDPI screens, alongside matching gold-and-ruby procedural `WILD` and `SCATTER` emblems.
+5. **Proactive Asset Normalization Pipeline ([`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs)):**
+   Designer handoffs often arrive with inconsistent naming (`symbol_high3.png`, `Symbol high_4.png`, `symbol_low4.png`) and oversized `1254×1254` textures (~9.7 MB total). I separated this step into [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) (`npm run assets:normalize`) to automatically map raw filenames to clean canonical names and downscale copies to `512×512` (~2.2 MB total, ~77% smaller) for fast WebGL loading. Keeping it isolated makes it straightforward to extend into a full studio asset tool (spritesheet/atlas packing, WebP conversion, and schema validation). Alongside these, `WILD` and `SCATTER` emblems are procedurally generated in matching gold-and-ruby style.
 6. **Zero-Dependency Procedural Web Audio:**
    Button clicks, spin whooshes, pitched per-reel stop thuds, win arpeggios, and bonus fanfares are synthesized via the Web Audio API, eliminating external audio file loading or licensing overhead.
 7. **Deterministic Testing & Automated CI/CD:**
