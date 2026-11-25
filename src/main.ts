@@ -69,9 +69,13 @@ async function bootstrap(): Promise<void> {
       void controller.handleDemoBonus();
     },
     onRefill: () => controller.handleRefill(),
-    onReset: () => controller.handleReset(),
+    onReset: () => {
+      paytable.visible = false;
+      controller.handleReset();
+    },
   });
-  stage.root.addChild(reels, bonusBar, hud, banner, paytable);
+  // Render HUD above ModalBanner so STOP ALL / RESET stays clickable during win & bonus banners
+  stage.root.addChild(reels, bonusBar, banner, hud, paytable);
 
   stage.onLayoutChange((layout) => {
     reels.position.set((layout.virtualWidth - reels.gridWidth) / 2, layout.isPortrait ? 150 : 120);
@@ -89,10 +93,27 @@ async function bootstrap(): Promise<void> {
     reels.update(ticker.deltaMS / 1000);
   });
 
+  let winWaitTimer: ReturnType<typeof setTimeout> | null = null;
+  let winWaitResolve: (() => void) | null = null;
+
+  const clearWinWait = () => {
+    if (winWaitTimer) {
+      clearTimeout(winWaitTimer);
+      winWaitTimer = null;
+    }
+    if (winWaitResolve) {
+      const res = winWaitResolve;
+      winWaitResolve = null;
+      res();
+    }
+  };
+
   const adapter: PresentationAdapter = {
-    updateHud(balance, bet, win, bonus, isIdle) {
-      hud.setBalance(balance, isIdle && !bonus.active && balance < bet);
-      hud.setBet(bet, !isIdle || bonus.active);
+    updateHud(balance, bet, win, bonus, controlsLocked, stopAllActive, autoControlEnabled) {
+      hud.setBalance(balance, !controlsLocked && !bonus.active && balance < bet);
+      hud.setControlsLocked(bet, controlsLocked || bonus.active);
+      hud.setStopAllMode(stopAllActive);
+      hud.setAutoEnabled(autoControlEnabled);
       hud.setWin(win, win > 0);
       paytable.updatePayouts(bet);
       bonusBar.updateBonus(bonus);
@@ -111,11 +132,27 @@ async function bootstrap(): Promise<void> {
         const tier = totalWin >= bet * 25 ? 'MEGA WIN!' : 'BIG WIN!';
         await banner.show(tier, `+${totalWin.toFixed(2)} CREDITS`, 1400);
       } else {
-        await new Promise((r) => setTimeout(r, 900));
+        clearWinWait();
+        await new Promise<void>((resolve) => {
+          winWaitResolve = resolve;
+          winWaitTimer = setTimeout(() => {
+            winWaitTimer = null;
+            winWaitResolve = null;
+            resolve();
+          }, 900);
+        });
       }
     },
     clearWins: () => reels.clearHighlights(),
     showBanner: (title, subtitle, ms) => banner.show(title, subtitle, ms),
+    abortPresentation() {
+      clearWinWait();
+      banner.hideImmediate();
+      paytable.visible = false;
+      reels.forceStop(initialDisplayGrid());
+      stage.setBonusMood(false);
+      hud.setWin(0, false);
+    },
     playClick: () => sound.playClick(),
     playSpin: () => sound.playSpin(),
     playBonusTrigger: () => sound.playBonusTrigger(),

@@ -32,6 +32,9 @@ export class SlotStage {
         fontWeight: '900',
         fontFamily: 'Georgia, serif',
         letterSpacing: 3,
+        align: 'center',
+        wordWrap: true,
+        wordWrapWidth: LANDSCAPE_WIDTH - 48,
       },
     });
     this.titleText.anchor.set(0.5);
@@ -71,6 +74,11 @@ export class SlotStage {
       .fill({ color: 0x7e22ce, alpha: 0.42 });
 
     this.titleText.style.fontSize = isPortrait ? 30 : 28;
+    this.titleText.style.wordWrapWidth = virtualWidth - 48;
+    this.titleText.scale.set(1);
+    if (this.titleText.width > virtualWidth - 48) {
+      this.titleText.scale.set((virtualWidth - 48) / this.titleText.width);
+    }
     this.titleText.position.set(virtualWidth / 2, isPortrait ? 38 : 26);
 
     if (this.loadingLabel && !this.loadingLabel.destroyed) {

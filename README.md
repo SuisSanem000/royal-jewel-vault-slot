@@ -37,8 +37,8 @@ npm run preview # Preview the production bundle locally
   - `SPIN` button or `Space` key to spin; click `STOP` or press `Space` again mid-spin for **Quick Stop**.
   - `-` / `+` adjusts bet (`1, 2, 5, 10, 20, 50` credits; locked during active Free Spins).
   - `AUTO` toggles continuous spins; `TURBO` toggles fast reel stops; `INFO` opens the visual Paytable & Rules modal (`ESC` / `Space` / click to close); `SFX ON / MUTED` toggles procedural Web Audio sound effects.
-  - **`DEMO BONUS`** (top-right of HUD) guarantees a 3-Scatter spin so evaluators can inspect the full Bonus Game flow on demand.
-  - **`RESET`** (top-left of HUD) resets balance (`1000.00`), bet (`5.00`), and game state back to start without refreshing the page; **`REFILL +1000`** appears when balance drops below the current bet.
+  - **`DEMO BONUS`** (top-right of HUD) guarantees a 3-Scatter spin so evaluators can inspect the full Bonus Game flow on demand (automatically disabled while spins/bonus/auto are active).
+  - **`RESET` / `STOP ALL`** (top-left of HUD) works at any time—including mid-spin, during banners, or inside `AUTO` and `BONUS` sequences—switching its label to **`STOP ALL`** whenever `AUTO` or Free Spins are active so you can immediately abort any ongoing flow and return to start (`1000.00` balance, `5.00` bet). **`REFILL +1000`** appears when idle and balance drops below the current bet.
 
 ---
 
@@ -103,4 +103,4 @@ Built for desktop widescreens, laptops, tablets, and portrait/landscape phones a
 6. **Zero-Dependency Procedural Web Audio:**
    Button clicks, spin whooshes, pitched per-reel stop thuds, win arpeggios, and bonus fanfares are synthesized via the Web Audio API, eliminating external audio file loading or licensing overhead.
 7. **Deterministic Testing & Automated CI/CD:**
-   A Mulberry32 `SeededRng` makes payline, Wild/Scatter, and Free Spins tests 100% reproducible (`18/18` Vitest tests passing across core math, state machine, controller flows, and responsive layout math). Every push to `main` automatically runs `npm test` and `npm run build` via GitHub Actions before deploying to GitHub Pages.
+   A Mulberry32 `SeededRng` makes payline, Wild/Scatter, and Free Spins tests 100% reproducible (`20/20` Vitest tests passing across core math, state machine, controller cancellation/bonus flows, and responsive layout math). Every push to `main` automatically runs `npm test` and `npm run build` via GitHub Actions before deploying to GitHub Pages.

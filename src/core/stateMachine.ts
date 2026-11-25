@@ -40,6 +40,17 @@ export class GameStateMachine {
     }
   }
 
+  /** Force-resets the machine to a known safe state (used when cancelling an active sequence). */
+  reset(state: GameState = 'IDLE'): void {
+    const prev = this.current;
+    this.current = state;
+    if (prev !== state) {
+      for (const listener of this.listeners) {
+        listener(state, prev);
+      }
+    }
+  }
+
   subscribe(listener: StateListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

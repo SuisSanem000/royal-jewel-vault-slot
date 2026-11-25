@@ -132,6 +132,21 @@ export class ReelColumn extends Container {
     this.land(onLand);
   }
 
+  /** Immediately halts spinning/bounce tweens and resolves pending spin promises (used by STOP ALL / RESET). */
+  forceStop(symbols?: SymbolId[]): void {
+    this.clearTimers();
+    gsap.killTweensOf(this);
+    this.spinning = false;
+    this.speed = 0;
+    this.blurFilter.strengthY = 0;
+    this.y = 0;
+    this.setSymbols(symbols ?? this.targetSymbols);
+    this.resetRowHighlights();
+    const res = this.stopResolve;
+    this.stopResolve = null;
+    res?.();
+  }
+
   private land(onLand?: () => void): void {
     this.spinning = false;
     this.speed = 0;

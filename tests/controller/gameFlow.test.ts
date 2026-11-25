@@ -7,21 +7,29 @@ import { GameStateMachine } from '../../src/core/stateMachine';
 function createMockView(): PresentationAdapter & {
   calls: string[];
   hudBonuses: boolean[];
-  hudIdleFlags: boolean[];
+  hudLockedFlags: boolean[];
+  stopAllFlags: boolean[];
+  autoEnabledFlags: boolean[];
 } {
   const calls: string[] = [];
   const hudBonuses: boolean[] = [];
-  const hudIdleFlags: boolean[] = [];
+  const hudLockedFlags: boolean[] = [];
+  const stopAllFlags: boolean[] = [];
+  const autoEnabledFlags: boolean[] = [];
   return {
     calls,
     hudBonuses,
-    hudIdleFlags,
-    updateHud: vi.fn((_bal, _bet, _win, bonus, isIdle) => {
+    hudLockedFlags,
+    stopAllFlags,
+    autoEnabledFlags,
+    updateHud: vi.fn((_bal, _bet, _win, bonus, locked, stopAll, autoEnabled) => {
       hudBonuses.push(bonus.active);
-      hudIdleFlags.push(isIdle);
+      hudLockedFlags.push(locked);
+      stopAllFlags.push(stopAll);
+      autoEnabledFlags.push(autoEnabled);
     }),
     setSpinButton: vi.fn(),
-    setAutoActive: vi.fn(),
+    setAutoActive: vi.fn((active) => calls.push(`autoActive:${active}`)),
     setTurboActive: vi.fn(),
     setBonusMood: vi.fn((active) => calls.push(`mood:${active}`)),
     spinReels: vi.fn(async (_grid, turbo) => {
@@ -35,6 +43,7 @@ function createMockView(): PresentationAdapter & {
     showBanner: vi.fn(async (title) => {
       calls.push(`banner:${title}`);
     }),
+    abortPresentation: vi.fn(() => calls.push('abort')),
     playClick: vi.fn(),
     playSpin: vi.fn(),
     playBonusTrigger: vi.fn(),
@@ -59,7 +68,7 @@ describe('GameController end-to-end flow', () => {
     expect(view.calls).toContain('spinReels:true');
   });
 
-  it('triggers Royal Free Spins without spoiling bonus HUD before reels land, and returns to IDLE', async () => {
+  it('triggers Royal Free Spins without spoiling bonus HUD before reels land, enables STOP ALL, and returns to IDLE', async () => {
     const engine = new SlotEngine(new SeededRng(7), 1000);
     const fsm = new GameStateMachine('BOOT');
     const view = createMockView();
@@ -70,6 +79,8 @@ describe('GameController end-to-end flow', () => {
 
     // hudBonuses[0] = start(), hudBonuses[1] = during initial spinReels() (must be false!)
     expect(view.hudBonuses[1]).toBe(false);
+    expect(view.stopAllFlags).toContain(true);
+    expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(false);
     expect(fsm.state).toBe('IDLE');
     expect(engine.bonus.active).toBe(false);
     expect(view.calls).toContain('mood:true');
@@ -80,9 +91,9 @@ describe('GameController end-to-end flow', () => {
     expect(view.calls.filter((c) => c.startsWith('spinReels:')).length).toBeGreaterThanOrEqual(9);
   });
 
-  it('locks HUD mid-spin, ignores handleDemoBonus mid-spin, and triggers quick-stop once on handleSpin', async () => {
+  it('locks HUD mid-spin, ignores handleDemoBonus and AUTO mid-spin, and triggers quick-stop once on handleSpin', async () => {
     let resolveSpin!: () => void;
-    const engine = new SlotEngine(new SeededRng(99), 5); // exact 1-bet balance so balanceBeforeWin === 0
+    const engine = new SlotEngine(new SeededRng(99), 5);
     const fsm = new GameStateMachine('BOOT');
     const view = createMockView();
     view.spinReels = vi.fn(
@@ -94,16 +105,19 @@ describe('GameController end-to-end flow', () => {
 
     const controller = new GameController(engine, fsm, view, 0);
     controller.start();
-    expect(view.hudIdleFlags[0]).toBe(true);
+    expect(view.hudLockedFlags[0]).toBe(false);
 
     const spinPromise = controller.handleSpin();
-    // Mid-spin: isIdle must be false (so REFILL/bet buttons stay locked)
-    expect(view.hudIdleFlags[1]).toBe(false);
+    // Mid-spin: controls must be locked and AUTO disabled
+    expect(view.hudLockedFlags[1]).toBe(true);
+    expect(view.autoEnabledFlags[1]).toBe(false);
     expect(fsm.state).toBe('SPINNING');
 
-    // Demo bonus mid-spin must be ignored (no quickStop)
+    // Demo bonus and enabling AUTO mid-spin must be ignored
     await controller.handleDemoBonus();
+    controller.handleToggleAuto();
     expect(view.quickStopReels).not.toHaveBeenCalled();
+    expect(view.calls).not.toContain('autoActive:true');
 
     // Clicking SPIN mid-spin triggers quickStop once and disables STOP button
     await controller.handleSpin();
@@ -114,6 +128,74 @@ describe('GameController end-to-end flow', () => {
     resolveSpin();
     await spinPromise;
     expect(fsm.state).toBe('IDLE');
-    expect(view.hudIdleFlags[view.hudIdleFlags.length - 1]).toBe(true);
+    expect(view.hudLockedFlags[view.hudLockedFlags.length - 1]).toBe(false);
+  });
+
+  it('allows handleReset (STOP ALL) to abort an active DEMO BONUS flow immediately from any state', async () => {
+    let resolveBanner!: () => void;
+    const engine = new SlotEngine(new SeededRng(7), 1000);
+    const fsm = new GameStateMachine('BOOT');
+    const view = createMockView();
+    view.showBanner = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveBanner = resolve;
+        }),
+    );
+
+    const controller = new GameController(engine, fsm, view, 0);
+    controller.start();
+
+    const demoPromise = controller.handleDemoBonus();
+    // Spin 1 resolves synchronously in mock view, entering BONUS_INTRO banner await
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fsm.state).toBe('BONUS_INTRO');
+    expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(true);
+
+    // Clicking STOP ALL / RESET unconditionally cancels the bonus flow & resets balance
+    controller.handleReset();
+    resolveBanner();
+    await demoPromise;
+
+    expect(view.calls).toContain('abort');
+    expect(fsm.state).toBe('IDLE');
+    expect(engine.bonus.active).toBe(false);
+    expect(engine.balance).toBe(1000);
+    expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(false);
+    // Only the initial trigger spin ran; all 8 free spins were aborted
+    expect(view.calls.filter((c) => c.startsWith('spinReels:')).length).toBe(1);
+  });
+
+  it('allows handleReset (STOP ALL) to abort AUTO mode mid-spin and cleanly unlock controls', async () => {
+    let resolveSpin!: () => void;
+    const engine = new SlotEngine(new SeededRng(12), 1000);
+    const fsm = new GameStateMachine('BOOT');
+    const view = createMockView();
+    view.spinReels = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSpin = resolve;
+        }),
+    );
+
+    const controller = new GameController(engine, fsm, view, 10);
+    controller.start();
+    controller.handleToggleAuto();
+    expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(true);
+    expect(fsm.state).toBe('SPINNING');
+
+    controller.handleReset();
+    resolveSpin();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(view.calls).toContain('abort');
+    expect(view.calls).toContain('autoActive:false');
+    expect(fsm.state).toBe('IDLE');
+    expect(engine.balance).toBe(1000);
+    expect(view.stopAllFlags[view.stopAllFlags.length - 1]).toBe(false);
+    expect(view.hudLockedFlags[view.hudLockedFlags.length - 1]).toBe(false);
   });
 });

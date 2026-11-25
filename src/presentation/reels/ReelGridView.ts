@@ -123,6 +123,11 @@ export class ReelGridView extends Container {
     );
   }
 
+  forceStop(grid?: Grid): void {
+    this.clearHighlights();
+    this.columns.forEach((col, idx) => col.forceStop(grid?.[idx]));
+  }
+
   private showAnticipation(colIndex: number): void {
     const x = colIndex * (this.cellSize + this.colGap);
     this.anticipationGraphics.clear();
