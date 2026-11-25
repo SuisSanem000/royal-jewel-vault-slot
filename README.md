@@ -29,7 +29,7 @@ npm run dev
 Open the Vite URL (default: `http://localhost:5173`).
 
 ```bash
-npm test        # Vitest unit & end-to-end flow tests (31/31 passing)
+npm test        # Vitest unit & end-to-end flow tests (32/32 passing)
 npm run build   # Strict TypeScript check (tsc --noEmit) + Vite bundle
 npm run preview # Preview production build locally
 ```
@@ -71,6 +71,7 @@ royal-jewel-vault-slot/
 │   │   ├── rng.ts                 # Rng interface, MathRng & deterministic Mulberry32 SeededRng
 │   │   ├── evaluator.ts           # Left-to-right payline, WILD substitution & SCATTER evaluator
 │   │   ├── stateMachine.ts        # Guarded FSM + safe reset()
+│   │   ├── timers.ts              # PausableTimerManager (freezes timers on tab hide/minimize)
 │   │   └── slotEngine.ts          # Balance accounting, spin resolution & Free Spins lifecycle
 │   ├── presentation/              # PixiJS v8, GSAP timelines & Web Audio
 │   │   ├── assets.ts              # Font wait + Spritesheet atlas loader (with progress & fallback)
@@ -82,7 +83,7 @@ royal-jewel-vault-slot/
 │   │   └── ui/                    # Reflowable HudView + BonusHeaderBar, ModalBanner, PaytableModal
 │   ├── controller/GameController.ts  # Mediates HUD, FSM, GameBackend & PresentationAdapter
 │   └── main.ts                    # Bootstrap, launch params, visibility & keyboard shortcuts
-└── tests/                         # 31/31 Vitest tests (core, presentation, controller)
+└── tests/                         # 32/32 Vitest tests (core, presentation, controller)
 ```
 
 ---
@@ -104,7 +105,7 @@ royal-jewel-vault-slot/
 - **Thumb-Zone Mobile HUD & Modal Scaling ([`HudView.ts`](./src/presentation/ui/HudView.ts), [`Overlays.ts`](./src/presentation/ui/Overlays.ts)):** Portrait mode reflows into a `780×352` 3-row card (`360×96` `SPIN`, `56×56` `-`/`+`, `170×68` toggles); `PaytableModal` and `ModalBanner` auto-center, word-wrap, and scale to fit narrow screens.
 - **Viewport, Notches & Touch ([`index.html`](./index.html)):** Uses `100dvh` (`100%` fallback), `viewport-fit=cover`, `env(safe-area-inset-*)` padding, `overscroll-behavior: none`, `touch-action`, and `-webkit-tap-highlight-color: transparent` without blocking accessibility zoom.
 - **Browser Zoom & 3× DPR Support:** Clamps `devicePixelRatio` to `[1, 3]` for native 3× mobile Retina and 2K/4K sharpness, updating `renderer.resolution` live on `window.resize`, `visualViewport.resize`, and `screen.orientation` changes.
-- **WebGL Context Loss & Tab Visibility:** `webglcontextlost`/`webglcontextrestored` DOM recovery overlay; `visibilitychange`/`blur` pauses PixiJS `Ticker`, GSAP, and Web Audio.
+- **WebGL Context Loss & Tab Visibility:** `webglcontextlost`/`webglcontextrestored` DOM recovery overlay; `visibilitychange`/`pagehide` freezes PixiJS `Ticker`, GSAP, Web Audio, and all active reel/bonus/auto timers (`PausableTimerManager`).
 - **High-Res Texture Atlas & Font Preloading:** [`scripts/normalize-assets.mjs`](./scripts/normalize-assets.mjs) packs all 9 `768×768` Lanczos symbols into a single `~1.05 MB` WebP spritesheet (`symbols.webp` + `symbols.json`, quality `96`) loaded with a live `%` progress bar after `document.fonts.ready`.
 - **Accessibility & Persistence:** `prefers-reduced-motion` disables blur, bounce, and sparkles; `localStorage` persists mute/turbo/bet safely inside `try/catch` (Private Mode & sandboxed iframe safe).
 
@@ -112,7 +113,7 @@ royal-jewel-vault-slot/
 
 ## Testing & QA Procedures
 
-- **Automated Unit & Flow Suite (`31/31` Vitest):**
+- **Automated Unit & Flow Suite (`32/32` Vitest):**
   - *Core Math & State:* Paylines, Wild substitution, Scatter triggers/re-triggers, progressive multipliers (`evaluator`, `slotEngine`, `stateMachine`).
   - *Operator & Transport:* `Intl.NumberFormat` / URL launch params (`format`), `RgsSlotBackend` idempotency, retries & disconnect recovery (`backend`).
   - *Presentation & Flows:* Responsive stage/DPR math (`layout`), sandboxed `localStorage` guards (`storage`), and end-to-end flows (`gameFlow`: bonus lifecycle, `STOP ALL` cancellation, UKGC spin floor, Reality Check).

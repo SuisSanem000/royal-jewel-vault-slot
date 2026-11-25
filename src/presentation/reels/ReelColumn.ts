@@ -1,6 +1,7 @@
 import gsap from 'gsap';
 import { BlurFilter, Container, Sprite, Texture } from 'pixi.js';
 import { ROW_COUNT } from '../../core/config';
+import { gameTimers } from '../../core/timers';
 import type { SymbolId } from '../../core/types';
 
 const ALL_SYMBOLS: SymbolId[] = [
@@ -28,7 +29,7 @@ export class ReelColumn extends Container {
   private reducedMotion = false;
   private turboMode = false;
   private stopResolve: (() => void) | null = null;
-  private stopTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopTimer: number | null = null;
   private targetSymbols: SymbolId[] = ['HIGH_RUBY', 'LOW_A', 'LOW_K'];
 
   constructor(
@@ -130,7 +131,8 @@ export class ReelColumn extends Container {
     this.targetSymbols = target;
     return new Promise((resolve) => {
       this.stopResolve = resolve;
-      this.stopTimer = setTimeout(() => {
+      this.stopTimer = gameTimers.set(() => {
+        this.stopTimer = null;
         this.land(onLand);
       }, delayMs);
     });
@@ -205,7 +207,7 @@ export class ReelColumn extends Container {
 
   private clearTimers(): void {
     if (this.stopTimer) {
-      clearTimeout(this.stopTimer);
+      gameTimers.clear(this.stopTimer);
       this.stopTimer = null;
     }
   }

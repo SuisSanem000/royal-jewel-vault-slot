@@ -4,6 +4,7 @@ import { REEL_COUNT, REEL_STRIPS, ROW_COUNT } from './core/config';
 import { formatCredits, parseLaunchConfig } from './core/format';
 import { SlotEngine } from './core/slotEngine';
 import { GameStateMachine } from './core/stateMachine';
+import { gameTimers } from './core/timers';
 import type { Grid } from './core/types';
 import { loadGameTextures } from './presentation/assets';
 import { SoundManager } from './presentation/audio';
@@ -159,12 +160,12 @@ async function bootstrap(): Promise<void> {
     reels.update(ticker.deltaMS / 1000);
   });
 
-  let winWaitTimer: ReturnType<typeof setTimeout> | null = null;
+  let winWaitTimer: number | null = null;
   let winWaitResolve: (() => void) | null = null;
 
   const clearWinWait = () => {
     if (winWaitTimer) {
-      clearTimeout(winWaitTimer);
+      gameTimers.clear(winWaitTimer);
       winWaitTimer = null;
     }
     if (winWaitResolve) {
@@ -201,7 +202,7 @@ async function bootstrap(): Promise<void> {
         clearWinWait();
         await new Promise<void>((resolve) => {
           winWaitResolve = resolve;
-          winWaitTimer = setTimeout(() => {
+          winWaitTimer = gameTimers.set(() => {
             winWaitTimer = null;
             winWaitResolve = null;
             resolve();
@@ -237,17 +238,20 @@ async function bootstrap(): Promise<void> {
 
   controller.start();
 
-  // Page Visibility API & focus handling: pause ticker + audio in background tabs
-  const syncVisibility = () => {
-    const hidden = document.hidden;
-    stage.setPaused(hidden);
-    if (hidden) {
+  // Page Visibility API & pagehide handling: freeze ticker, timers, GSAP & audio when backgrounded
+  const setBackgroundPaused = (paused: boolean) => {
+    stage.setPaused(paused);
+    if (paused) {
+      gameTimers.pauseAll();
       sound.suspendForBackground();
     } else {
+      gameTimers.resumeAll();
       sound.resumeFromBackground();
     }
   };
-  document.addEventListener('visibilitychange', syncVisibility);
+  document.addEventListener('visibilitychange', () => setBackgroundPaused(document.hidden));
+  window.addEventListener('pagehide', () => setBackgroundPaused(true));
+  window.addEventListener('pageshow', () => setBackgroundPaused(document.hidden));
   window.addEventListener('blur', () => sound.suspendForBackground());
   window.addEventListener('focus', () => {
     if (!document.hidden) sound.resumeFromBackground();

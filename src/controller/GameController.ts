@@ -2,6 +2,7 @@ import { LocalSlotBackend, RgsTransportError, type GameBackend } from '../core/b
 import { formatCredits, type FormatConfig } from '../core/format';
 import { SlotEngine } from '../core/slotEngine';
 import type { GameStateMachine } from '../core/stateMachine';
+import { gameTimers } from '../core/timers';
 import type { BonusState, Grid, LineWin, ScatterWin, SpinResult } from '../core/types';
 
 export interface PresentationAdapter {
@@ -64,8 +65,8 @@ export class GameController {
   private sessionSpins = 0;
   private sessionStartMs: number;
   private lastRealityCheckMs: number;
-  private autoTimer: ReturnType<typeof setTimeout> | null = null;
-  private pauseTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoTimer: number | null = null;
+  private pauseTimer: number | null = null;
   private pauseResolve: (() => void) | null = null;
 
   constructor(
@@ -241,7 +242,7 @@ export class GameController {
       this.stopAutoSpin();
       return;
     }
-    this.autoTimer = setTimeout(() => {
+    this.autoTimer = gameTimers.set(() => {
       this.autoTimer = null;
       if (token === this.runId && this.autoSpin && this.fsm.state === 'IDLE') {
         void this.handleSpin();
@@ -251,14 +252,14 @@ export class GameController {
 
   private clearAutoTimer(): void {
     if (this.autoTimer) {
-      clearTimeout(this.autoTimer);
+      gameTimers.clear(this.autoTimer);
       this.autoTimer = null;
     }
   }
 
   private clearPause(): void {
     if (this.pauseTimer) {
-      clearTimeout(this.pauseTimer);
+      gameTimers.clear(this.pauseTimer);
       this.pauseTimer = null;
     }
     if (this.pauseResolve) {
@@ -481,7 +482,7 @@ export class GameController {
     if (ms <= 0) return Promise.resolve();
     return new Promise((resolve) => {
       this.pauseResolve = resolve;
-      this.pauseTimer = setTimeout(() => {
+      this.pauseTimer = gameTimers.set(() => {
         this.pauseTimer = null;
         this.pauseResolve = null;
         resolve();

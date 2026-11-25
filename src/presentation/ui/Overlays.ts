@@ -2,6 +2,7 @@ import gsap from 'gsap';
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { PAYTABLE, SCATTER_FREE_SPINS, SCATTER_PAYOUTS } from '../../core/config';
 import { formatCredits, type FormatConfig } from '../../core/format';
+import { gameTimers } from '../../core/timers';
 import type { BonusState, SymbolId } from '../../core/types';
 import type { GameTextures } from '../assets';
 
@@ -70,7 +71,7 @@ export class ModalBanner extends Container {
   private readonly titleText: Text;
   private readonly subtitleText: Text;
   private readonly card = new Container();
-  private activeTimer: ReturnType<typeof setTimeout> | null = null;
+  private activeTimer: number | null = null;
   private activeResolve: (() => void) | null = null;
 
   constructor(stageWidth: number, stageHeight: number) {
@@ -140,7 +141,7 @@ export class ModalBanner extends Container {
 
   private finishCurrentShow(): void {
     if (this.activeTimer) {
-      clearTimeout(this.activeTimer);
+      gameTimers.clear(this.activeTimer);
       this.activeTimer = null;
     }
     gsap.killTweensOf(this);
@@ -180,7 +181,7 @@ export class ModalBanner extends Container {
 
     return new Promise<void>((resolve) => {
       this.activeResolve = resolve;
-      this.activeTimer = setTimeout(() => {
+      this.activeTimer = gameTimers.set(() => {
         this.activeTimer = null;
         gsap.to(this, {
           alpha: 0,
